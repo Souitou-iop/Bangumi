@@ -238,6 +238,9 @@ export const INIT_SETTING = {
   /** 首屏底栏页面是否懒加载 */
   bottomTabLazy: true,
 
+  /** 是否使用 iOS 系统原生底栏 */
+  nativeBottomTabs: false,
+
   /** 切页动画 */
   transition: MODEL_SETTING_TRANSITION.getValue('水平'),
 

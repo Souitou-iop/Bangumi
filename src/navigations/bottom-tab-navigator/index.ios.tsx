@@ -23,12 +23,17 @@ const SF_SYMBOLS = {
 } as const
 
 function BottomTabNavigator() {
-  const { homeRenderTabs, tinygrail: isTinygrailEnabled } = systemStore.setting
+  const {
+    homeRenderTabs,
+    nativeBottomTabs,
+    tinygrail: isTinygrailEnabled
+  } = systemStore.setting
+  const nativeBottomTabsEnabled = React.useRef(nativeBottomTabs === true).current
   const tabConfigs = getTabConfig(!!isTinygrailEnabled)
   const visibleTabConfigs = tabConfigs.filter(config => config.showCondition(homeRenderTabs))
 
   // Expo Go does not contain the native Tabs host. UIKit also moves the sixth tab into "More".
-  if (!shouldUseNativeTabs(IOS_IPA, visibleTabConfigs.length)) {
+  if (!shouldUseNativeTabs(IOS_IPA, nativeBottomTabsEnabled, visibleTabConfigs.length)) {
     return <LegacyBottomTabNavigator />
   }
 

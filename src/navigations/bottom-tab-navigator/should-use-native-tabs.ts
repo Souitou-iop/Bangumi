@@ -1,3 +1,7 @@
-export function shouldUseNativeTabs(isStandalone: boolean, tabCount: number) {
-  return isStandalone && tabCount <= 5
+export function shouldUseNativeTabs(
+  isStandalone: boolean,
+  enabled: boolean | undefined,
+  tabCount: number
+) {
+  return isStandalone && enabled === true && tabCount <= 5
 }

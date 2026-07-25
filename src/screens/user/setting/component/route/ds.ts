@@ -31,6 +31,11 @@ export const TEXTS = {
     hd: '底栏页面懒加载',
     information:
       '默认开启底栏懒加载以加快启动速度（点击对应页面才加载），关闭可加速页面切换但会增加启动时间。'
+  },
+  nativeBottomTabs: {
+    hd: 'iOS 原生底栏',
+    information:
+      '使用系统原生底栏，在 iOS 26+ 显示 Liquid Glass 效果；切换后需要重新启动应用才能生效。'
   }
 } as const
 

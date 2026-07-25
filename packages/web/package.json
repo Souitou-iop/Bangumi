@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "sudo STORYBOOK=true start-storybook -p 6006",
     "build": "sudo STORYBOOK=true build-storybook",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package --patch-dir packages/web/patches",
     "env": "node ./packages/env.js",
     "proxy": "cd ./web/tools && node proxy-api.js",
     "proxy:webdav": "cd ./web/tools && node proxy-webdav.js",
