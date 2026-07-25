@@ -4,12 +4,14 @@
  * @Last Modified by: czy0729
  * @Last Modified time: 2026-01-09 19:51:18
  */
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DeviceEventEmitter, View } from 'react-native'
 import { systemStore } from '@stores'
 import { s2t } from '@utils/thirdParty/open-cc'
 import { FROZEN_FN, IOS } from '@constants'
 import { HoldItem } from '../../hold-menu'
+import { NativeMenuView } from './native-menu'
+import { getNativeMenuSelection } from './selection'
 
 import type { PopoverIOSItems } from './types'
 
@@ -17,7 +19,7 @@ const EVENT_TYPE = 'POPOVER_ONSELECT'
 
 let uniqueId = 0
 
-function Popover({ activateOn, children, ...other }) {
+function LegacyPopover({ activateOn, children, ...other }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const data = other.data || other.overlay?.props?.data || []
   const title = other.title || other.overlay?.props?.title || ''
@@ -83,6 +85,57 @@ function Popover({ activateOn, children, ...other }) {
       </HoldItem>
     </View>
   )
+}
+
+function NativePopover({ activateOn, children, ...other }) {
+  const data = useMemo(
+    () => other.data || other.overlay?.props?.data || [],
+    [other.data, other.overlay]
+  )
+  const title = other.title || other.overlay?.props?.title || ''
+  const onSelect = other.onSelect || other.overlay?.props?.onSelect || FROZEN_FN
+
+  const items = useMemo(
+    () =>
+      systemStore.setting.s2t
+        ? data.map((item: string) => (typeof item === 'string' ? s2t(item) : item))
+        : [...data],
+    [data]
+  )
+
+  const handleSelect = useCallback(
+    event => {
+      const selection = getNativeMenuSelection(data, event.nativeEvent)
+      if (!selection) return
+
+      setTimeout(() => onSelect(...selection), 160)
+    },
+    [data, onSelect]
+  )
+
+  if (!NativeMenuView) {
+    return (
+      <LegacyPopover activateOn={activateOn} {...other}>
+        {children}
+      </LegacyPopover>
+    )
+  }
+
+  return (
+    <NativeMenuView
+      style={other.style}
+      items={items}
+      title={systemStore.setting.s2t && title ? s2t(title) : title}
+      activateOn={activateOn || 'tap'}
+      onSelect={handleSelect}
+    >
+      {children}
+    </NativeMenuView>
+  )
+}
+
+function Popover(props) {
+  return NativeMenuView ? <NativePopover {...props} /> : <LegacyPopover {...props} />
 }
 
 export default Popover
