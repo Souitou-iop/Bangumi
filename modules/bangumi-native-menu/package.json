@@ -1,0 +1,7 @@
+{
+  "name": "bangumi-native-menu",
+  "version": "1.0.0",
+  "description": "Bangumi UIKit system menu bridge",
+  "private": true,
+  "license": "MIT"
+}
