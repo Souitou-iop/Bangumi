@@ -1,11 +1,20 @@
 import ExpoModulesCore
 import UIKit
 
+private final class MenuDismissalShield: UIView {
+  var onTouch: (() -> Void)?
+
+  override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    onTouch?()
+  }
+}
+
 public final class BangumiNativeMenuView: ExpoView, UIContextMenuInteractionDelegate {
   let onSelect = EventDispatcher()
 
   private let tapButton = UIButton(type: .custom)
   private lazy var contextMenuInteraction = UIContextMenuInteraction(delegate: self)
+  private weak var dismissalShield: MenuDismissalShield?
   private var items: [String] = []
   private var menuTitle = ""
   private var activateOn = "tap"
@@ -18,7 +27,16 @@ public final class BangumiNativeMenuView: ExpoView, UIContextMenuInteractionDele
     tapButton.accessibilityIdentifier = "bangumi.native-menu.trigger"
     tapButton.accessibilityLabel = "菜单"
     tapButton.showsMenuAsPrimaryAction = true
+    tapButton.addTarget(self, action: #selector(installDismissalShield), for: .menuActionTriggered)
     addSubview(tapButton)
+  }
+
+  public override func didMoveToWindow() {
+    super.didMoveToWindow()
+
+    if window == nil {
+      removeDismissalShield()
+    }
   }
 
   public override func layoutSubviews() {
@@ -45,6 +63,10 @@ public final class BangumiNativeMenuView: ExpoView, UIContextMenuInteractionDele
   private func updateInteraction() {
     let hasItems = !items.isEmpty
     let activatesOnHold = activateOn == "hold"
+
+    if !hasItems || activatesOnHold {
+      removeDismissalShield()
+    }
 
     tapButton.menu = hasItems && !activatesOnHold ? makeMenu() : nil
     tapButton.isHidden = !hasItems || activatesOnHold
@@ -73,6 +95,8 @@ public final class BangumiNativeMenuView: ExpoView, UIContextMenuInteractionDele
       return
     }
 
+    removeDismissalShield()
+
     let anchor = CGPoint(x: bounds.midX, y: bounds.midY)
     let windowPoint = window.map { convert(anchor, to: $0) } ?? anchor
     onSelect([
@@ -80,6 +104,27 @@ public final class BangumiNativeMenuView: ExpoView, UIContextMenuInteractionDele
       "pageX": windowPoint.x,
       "pageY": windowPoint.y
     ])
+  }
+
+  @objc private func installDismissalShield() {
+    guard dismissalShield == nil, let window else {
+      return
+    }
+
+    let shield = MenuDismissalShield(frame: window.bounds)
+    shield.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    shield.backgroundColor = .clear
+    shield.accessibilityIdentifier = "bangumi.native-menu.dismissal-shield"
+    shield.onTouch = { [weak self] in
+      self?.removeDismissalShield()
+    }
+    window.addSubview(shield)
+    dismissalShield = shield
+  }
+
+  private func removeDismissalShield() {
+    dismissalShield?.removeFromSuperview()
+    dismissalShield = nil
   }
 
   public func contextMenuInteraction(
