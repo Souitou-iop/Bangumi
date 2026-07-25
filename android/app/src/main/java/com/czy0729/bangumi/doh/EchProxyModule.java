@@ -20,6 +20,8 @@ import com.facebook.react.bridge.WritableMap;
 
 import android.util.Log;
 
+import com.facebook.react.modules.network.OkHttpClientProvider;
+
 /**
  * ECH 代理 Native Module
  *
@@ -101,6 +103,7 @@ public class EchProxyModule extends ReactContextBaseJavaModule {
             currentPort = sProxyPort;
             running = true;
             addLog("info", "proxy", "代理已在运行，端口: " + sProxyPort);
+            // 代理仍在运行, 不清理连接池 — 避免误杀健康连接
             promise.resolve(sProxyPort);
             return;
         }
@@ -133,6 +136,9 @@ public class EchProxyModule extends ReactContextBaseJavaModule {
             Log.d("EchProxy", "Shared EchProxy cache with DoHDNS: " + cacheDir);
             addLog("info", "cache", "缓存已共享至 DoHDNS: " + cacheDir);
 
+            // 清理 OkHttp 连接池, 防止后台回来时复用残留的死连接
+            evictOkHttpConnectionPool();
+
             promise.resolve(currentPort);
         } catch (Exception e) {
             Log.e("EchProxy", "Failed to start proxy", e);
@@ -164,7 +170,14 @@ public class EchProxyModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getStatus(Promise promise) {
-        // 以 static sProxyPort 为准, 跨 ReactContext 实例一致
+        // 真实存活检测: 不仅看静态标志, 还检查 native listener 线程是否存活
+        boolean alive = EchProxyNative.safeIsAlive();
+        if (!alive && sProxyPort > 0) {
+            // native 代理已死但 Java 标志未同步, 重置以触发上游重建
+            Log.d("EchProxy", "getStatus: native proxy dead, resetting sProxyPort");
+            addLog("warn", "proxy", "检测到代理已停止, 重置状态");
+            sProxyPort = 0;
+        }
         WritableMap status = Arguments.createMap();
         status.putBoolean("running", sProxyPort > 0);
         status.putInt("port", sProxyPort);
@@ -224,5 +237,19 @@ public class EchProxyModule extends ReactContextBaseJavaModule {
     public static File getCacheDirStatic(ReactApplicationContext context) {
         if (context == null) return null;
         return context.getCacheDir();
+    }
+
+    /**
+     * 清理 OkHttp 连接池，强制丢弃所有已建立的连接。
+     * 下一次请求会重建连接到 ECH 代理，避免后台回来后复用到已被 OS 杀掉的死连接。
+     */
+    private void evictOkHttpConnectionPool() {
+        try {
+            OkHttpClientProvider.getOkHttpClient().connectionPool().evictAll();
+            Log.d("EchProxy", "OkHttp connection pool evicted");
+            addLog("info", "proxy", "OkHttp 连接池已清理");
+        } catch (Exception e) {
+            Log.w("EchProxy", "Failed to evict connection pool: " + e.getMessage());
+        }
     }
 }
