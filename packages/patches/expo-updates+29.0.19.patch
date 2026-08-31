@@ -1,0 +1,12 @@
+diff --git a/node_modules/expo-updates/scripts/create-updates-resources-ios.sh b/node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+index 27a58e3..abc5ade 100755
+--- a/node_modules/expo-updates/scripts/create-updates-resources-ios.sh
++++ b/node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+@@ -41,6 +41,7 @@ PROJECT_ROOT="$(pwd -P)"
+ 
+ if [ "$BUNDLE_FORMAT" == "shallow" ]; then
+   RESOURCE_DEST="$DEST/$RESOURCE_BUNDLE_NAME"
++  mkdir -p "$RESOURCE_DEST"
+ elif [ "$BUNDLE_FORMAT" == "deep" ]; then
+   RESOURCE_DEST="$DEST/$RESOURCE_BUNDLE_NAME/Contents/Resources"
+   mkdir -p "$RESOURCE_DEST"
