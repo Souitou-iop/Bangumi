@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2025-08-09 16:07:14
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-10-25 12:26:26
+ * @Last Modified time: 2026-07-28 17:20:44
  */
 import type { EventType, NavigationPushType, Override, Paths } from '@types'
 import type { TouchableProps } from '../touchable'
@@ -10,7 +10,7 @@ import type { TouchableProps } from '../touchable'
 type ExtractParams<P extends Paths> = NavigationPushType extends (
   path: P,
   params?: infer Params
-) => any
+) => void
   ? Params
   : never
 

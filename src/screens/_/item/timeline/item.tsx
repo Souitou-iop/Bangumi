@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2019-05-08 17:13:08
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-05-09 00:16:53
+ * @Last Modified time: 2026-08-27 20:56:52
  */
 import React, { useCallback } from 'react'
 import { View } from 'react-native'
@@ -22,7 +22,7 @@ import {
   COMPONENT_MAIN,
   DEFAULT_PROPS,
   HIDDEN_DS,
-  ITEM_HEIGHT,
+  ITEM_TIMELINE_HEIGHT,
   LIKES_OFFSETS
 } from './ds'
 
@@ -117,7 +117,7 @@ const Item = memo(
     const rightCoverIsMusic = !rightCoverIsAvatar && type === '音乐'
     const showImages = image.length >= 3
 
-    const y = ITEM_HEIGHT * (index + 2)
+    const y = InView.y(index, ITEM_TIMELINE_HEIGHT)
 
     return (
       <Flex style={style} align='start'>
@@ -178,6 +178,7 @@ const Item = memo(
 
               <Likes
                 style={styles.likes}
+                rightMaskStyle={styles.rightMask}
                 show
                 topicId={like.mainId}
                 id={like.relatedId}

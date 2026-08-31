@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2023-02-06 19:35:26
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-07 23:02:20
+ * @Last Modified time: 2026-08-08 21:23:02
  */
 import type { ImageSourcePropType } from 'react-native'
 import type {
@@ -17,10 +17,16 @@ import type {
 } from '@constants/model/types'
 import type * as Screens from '@screens'
 import type { Id, MonoId, PersonId, SubjectId, TopicId, UserId } from './bangumi'
-import type { AnyObject, Fn } from './utils'
+import type { Fn } from './utils'
 
 /** 所有页面路径名 */
 export type Paths = keyof typeof Screens
+
+/** 路由覆盖配置 */
+export type Configs = {
+  initialRouteName: Paths | 'HomeTab'
+  initialRouteParams: Record<string, unknown>
+}
 
 /**
  * 构造页面路由类型
@@ -30,19 +36,17 @@ export type Paths = keyof typeof Screens
 type Route<Path extends Paths, Params = undefined> = (
   path: Path,
   params?: Params extends undefined ? undefined : Params
-) => any
+) => void
 
 /** 获取页面路由参数 */
-export type GetRouteParams<R> = R extends (path: any, params?: infer P) => any
+export type GetRouteParams<R> = R extends (path: infer _Path, params?: infer P) => void
   ? P extends undefined
     ? {}
     : P
   : {}
 
-/** 路由和参数约束 */
 export type NavigationPushType = RouteActions &
   RouteAnime &
-  RouteAuth &
   RouteAward &
   RouteBlog &
   RouteBlogs &
@@ -100,23 +104,30 @@ export type NavigationPushType = RouteActions &
   RouteWordCloud &
   RouteWorks &
   RouteZone &
-  ((path: Paths) => any)
+  ((path: Paths) => void)
 
+/** 影评列表 */
 export type RouteReviews = Route<
   'Reviews',
   {
+    /** 条目 ID */
     subjectId: SubjectId
+
+    /** 条目名 */
     name: string
   }
 >
 
+/** 电波提醒 */
 export type RouteNotify = Route<
   'Notify',
   {
+    /** 通知类型, pm 为私信, notify 为系统通知 */
     type?: 'pm' | 'notify'
   }
 >
 
+/** 分类排行 */
 export type RouteTyperank = Route<
   'Typerank',
   {
@@ -134,61 +145,74 @@ export type RouteTyperank = Route<
   }
 >
 
-export type RouteChannel = (
-  path: 'Channel',
-  params: {
+/** 频道 */
+export type RouteChannel = Route<
+  'Channel',
+  {
+    /** 条目类型 */
     type?: SubjectType
   }
-) => any
+>
 
-export type RouteTips = (
-  path: 'Tips',
-  params: {
+/** 特色功能 */
+export type RouteTips = Route<
+  'Tips',
+  {
+    /** 功能标识, 用于加载对应的 Web 内容 */
     key?: string
   }
-) => any
+>
 
-export type RouteAuth = (path: 'Auth') => any
-
-export type RouteAnime = (
-  path: 'Anime',
-  params: {
+/** 找番剧 */
+export type RouteAnime = Route<
+  'Anime',
+  {
+    /** 预选标签 */
     _tags?: string[]
   }
-) => any
+>
 
-export type RouteManga = (
-  path: 'Manga',
-  params: {
+/** 找漫画 */
+export type RouteManga = Route<
+  'Manga',
+  {
+    /** 预选标签 */
     _tags?: string[]
   }
-) => any
+>
 
-export type RouteWenku = (
-  path: 'Wenku',
-  params: {
+/** 找文库 */
+export type RouteWenku = Route<
+  'Wenku',
+  {
+    /** 预选标签 */
     _tags?: string[]
   }
-) => any
+>
 
-export type RouteGame = (
-  path: 'Game',
-  params: {
+/** 找游戏 */
+export type RouteGame = Route<
+  'Game',
+  {
+    /** 预选标签 */
     _tags?: string[]
   }
-) => any
+>
 
-export type RouteHentai = (
-  path: 'Hentai',
-  params: {
+/** 找里番 */
+export type RouteHentai = Route<
+  'Hentai',
+  {
+    /** 预选标签 */
     _tags?: string[]
   }
-) => any
+>
 
+/** 用户的时间线 */
 export type RouteUserTimeline = Route<
   'UserTimeline',
   {
-    /** 用户 id, 不传递使用自己的 id */
+    /** 用户 ID, 不传递使用自己的 ID */
     userId?: UserId
 
     /** 用户昵称 */
@@ -196,9 +220,10 @@ export type RouteUserTimeline = Route<
   }
 >
 
-export type RoutePic = (
-  path: 'Pic',
-  params: {
+/** 图集 */
+export type RoutePic = Route<
+  'Pic',
+  {
     /** 设为塔图的人物 (小圣杯专用) */
     monoId?: MonoId
 
@@ -211,18 +236,19 @@ export type RoutePic = (
     /** 目标关键字没有结果后, 追加的尝试关键字 */
     keywords?: string[]
   }
-) => any
+>
 
+/** 吐槽详情 */
 export type RouteSay = Route<
   'Say',
   {
     /** @deprecated 以 sayId 为最优先 */
     id?: Id
 
-    /** 吐槽 id */
+    /** 吐槽 ID */
     sayId?: Id
 
-    /** 查看某吐槽是需要带上发布人的用户 id */
+    /** 查看某吐槽是需要带上发布人的用户 ID */
     userId?: UserId
 
     /** 新吐槽发布后回调 (client only) */
@@ -230,6 +256,7 @@ export type RouteSay = Route<
   }
 >
 
+/** 人物的角色 (声优) */
 export type RouteVoices = Route<
   'Voices',
   {
@@ -241,6 +268,7 @@ export type RouteVoices = Route<
   }
 >
 
+/** 人物的作品 (制作人员) */
 export type RouteWorks = Route<
   'Works',
   {
@@ -252,22 +280,38 @@ export type RouteWorks = Route<
   }
 >
 
+/** 日志详情 */
 export type RouteBlog = Route<
   'Blog',
   {
+    /** 日志 ID */
     blogId: Id
+
+    /** 标题占位 */
     _title?: string
+
+    /** 发布时间占位 */
     _time?: string
+
+    /** 用户头像占位 */
     _avatar?: string
+
+    /** 用户 ID 占位 */
     _userId?: string
+
+    /** 用户名占位 */
     _userName?: string
+
+    /** 原文链接占位 */
     _url?: string
   }
 >
 
+/** 条目更多角色 */
 export type RouteCharacters = Route<
   'Characters',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目名, 用于标题 */
@@ -275,6 +319,7 @@ export type RouteCharacters = Route<
   }
 >
 
+/** 条目封面一览 */
 export type RouteOverview = Route<
   'Overview',
   {
@@ -300,9 +345,11 @@ export type RouteOverview = Route<
   }
 >
 
+/** 制作人员 */
 export type RoutePersons = Route<
   'Persons',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目名, 用于标题 */
@@ -310,20 +357,25 @@ export type RoutePersons = Route<
   }
 >
 
+/** 开发调试工具 */
 export type RouteDEV = Route<
   'DEV',
   {
+    /** 指定用户 ID, 用于调试 */
     userId?: UserId
   }
 >
 
+/** 全站日志 */
 export type RouteDiscoveryBlog = Route<
   'DiscoveryBlog',
   {
+    /** 条目类型 */
     type?: SubjectType
   }
 >
 
+/** 词云 */
 export type RouteWordCloud = Route<
   'WordCloud',
   {
@@ -344,6 +396,7 @@ export type RouteWordCloud = Route<
   }
 >
 
+/** 标签条目 */
 export type RouteTag = Route<
   'Tag',
   {
@@ -361,13 +414,16 @@ export type RouteTag = Route<
   }
 >
 
+/** 标签 */
 export type RouteTags = Route<
   'Tags',
   {
+    /** 条目类型 */
     type?: SubjectType
   }
 >
 
+/** 搜索 */
 export type RouteSearch = Route<
   'Search',
   {
@@ -391,10 +447,11 @@ export type RouteSearch = Route<
   }
 >
 
+/** 人物详情 */
 export type RouteMono = Route<
   'Mono',
   {
-    /** 人物 id */
+    /** 人物 ID */
     monoId: MonoId
 
     /** 中文名 */
@@ -414,17 +471,22 @@ export type RouteMono = Route<
   }
 >
 
+/** 小组 */
 export type RouteGroup = Route<
   'Group',
   {
+    /** 小组 ID */
     groupId: string
+
+    /** 小组名占位 */
     _title?: string
   }
 >
 
-export type RouteWebBrowser = (
-  path: 'WebBrowser',
-  params: {
+/** 内置浏览器 */
+export type RouteWebBrowser = Route<
+  'WebBrowser',
+  {
     /** 链接 */
     url: string
 
@@ -440,18 +502,19 @@ export type RouteWebBrowser = (
     /** 是否允许手势, 可用于避免在填写表单时手滑退出页面 (default=true) */
     gestureEnabled?: boolean
   }
-) => any
+>
 
+/** 用户空间 */
 export type RouteZone = Route<
   'Zone',
   {
-    /** 用户 id */
+    /** 用户 ID */
     userId: UserId
 
     /** 来自哪个约定的页面 */
     from?: 'tinygrail'
 
-    /** 占位用户 id */
+    /** 占位用户 ID */
     _id?: UserId
 
     /** 占位用户昵称 */
@@ -462,6 +525,7 @@ export type RouteZone = Route<
   }
 >
 
+/** 目录 */
 export type RouteCatalog = Route<
   'Catalog',
   {
@@ -470,9 +534,11 @@ export type RouteCatalog = Route<
   }
 >
 
+/** 目录详情 */
 export type RouteCatalogDetail = Route<
   'CatalogDetail',
   {
+    /** 目录 ID */
     catalogId: Id
 
     /** 是否隐藏条目分数 */
@@ -483,34 +549,58 @@ export type RouteCatalogDetail = Route<
   }
 >
 
+/** 用户个人空间 */
 export type RouteUser = Route<
   'User',
   {
-    /** 用户 id, 没传递则使用自己 */
+    /** 用户 ID, 没传递则使用自己 */
     userId?: UserId
   }
 >
 
+/** 帖子详情 */
 export type RouteTopic = Route<
   'Topic',
   {
-    /** 帖子 id: group/1, subject/1, ep/1, crt/1, prsn/1 */
+    /** 帖子 ID: group/1, subject/1, ep/1, crt/1, prsn/1 */
     topicId: TopicId
 
+    /** 发帖人头像占位 */
     _avatar?: string
+
+    /** 描述占位 */
     _desc?: string
+
+    /** 小组名占位 */
     _group?: string
+
+    /** 小组缩略图占位 */
     _groupThumb?: string
+
+    /** 是否跳过网络请求 (仅用占位数据) */
     _noFetch?: boolean
+
+    /** 回复数字占位 */
     _replies?: string
+
+    /** 发帖时间占位 */
     _time?: string
+
+    /** 帖子标题占位 */
     _title?: string
+
+    /** 帖子链接占位 */
     _url?: string
+
+    /** 发帖人用户 ID 占位 */
     _userId?: UserId
+
+    /** 发帖人用户名占位 */
     _userName?: string
   }
 >
 
+/** 用户目录 */
 export type RouteCatalogs = Route<
   'Catalogs',
   {
@@ -519,6 +609,7 @@ export type RouteCatalogs = Route<
   }
 >
 
+/** 用户日志列表 */
 export type RouteBlogs = Route<
   'Blogs',
   {
@@ -527,9 +618,11 @@ export type RouteBlogs = Route<
   }
 >
 
+/** 讨论版 */
 export type RouteBoard = Route<
   'Board',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目中文名 */
@@ -537,6 +630,7 @@ export type RouteBoard = Route<
   }
 >
 
+/** 用户人物 */
 export type RouteCharacter = Route<
   'Character',
   {
@@ -545,17 +639,19 @@ export type RouteCharacter = Route<
   }
 >
 
+/** 好友 */
 export type RouteFriends = Route<
   'Friends',
   {
     /** 用户 ID */
     userId?: UserId
 
-    /** 好友类型 */
+    /** 好友筛选类型, rev 表示反向关注 */
     type?: 'rev'
   }
 >
 
+/** 短信 */
 export type RoutePM = Route<
   'PM',
   {
@@ -579,6 +675,7 @@ export type RoutePM = Route<
   }
 >
 
+/** 条目详情 */
 export type RouteSubject = Route<
   'Subject',
   {
@@ -617,6 +714,7 @@ export type RouteSubject = Route<
   }
 >
 
+/** 条目信息 (简介/详情) */
 export type RouteSubjectInfo = Route<
   'SubjectInfo',
   {
@@ -631,6 +729,7 @@ export type RouteSubjectInfo = Route<
   }
 >
 
+/** 条目关联图 */
 export type RouteSubjectLink = Route<
   'SubjectLink',
   {
@@ -651,6 +750,7 @@ export type RouteSubjectLink = Route<
   }
 >
 
+/** 条目修订历史 */
 export type RouteSubjectWiki = Route<
   'SubjectWiki',
   {
@@ -662,9 +762,11 @@ export type RouteSubjectWiki = Route<
   }
 >
 
+/** 章节列表 */
 export type RouteEpisodes = Route<
   'Episodes',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目名 */
@@ -674,16 +776,18 @@ export type RouteEpisodes = Route<
     filterEps?: number
 
     /** 预览图 (因浏览器跨域, clien only) */
-    epsThumbs?: any[]
+    epsThumbs?: string[]
 
     /** 预览图请求头 (clien only) */
-    epsThumbsHeader?: AnyObject
+    epsThumbsHeader?: Record<string, string>
   }
 >
 
+/** 条目目录 */
 export type RouteSubjectCatalogs = Route<
   'SubjectCatalogs',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目名 */
@@ -691,16 +795,20 @@ export type RouteSubjectCatalogs = Route<
   }
 >
 
+/** 排行榜 */
 export type RouteRank = Route<
   'Rank',
   {
+    /** 条目类型 */
     type?: SubjectType
   }
 >
 
+/** 用户评分 */
 export type RouteRating = Route<
   'Rating',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** Tab 默认索引 */
@@ -729,6 +837,7 @@ export type RouteRating = Route<
   }
 >
 
+/** 自定义跳转 */
 export type RouteActions = Route<
   'Actions',
   {
@@ -740,9 +849,10 @@ export type RouteActions = Route<
   }
 >
 
-export type RouteInformation = (
-  path: 'Information',
-  params: {
+/** 说明 */
+export type RouteInformation = Route<
+  'Information',
+  {
     /** 标题 */
     title: string
 
@@ -761,49 +871,70 @@ export type RouteInformation = (
     /** AI 相关 */
     ai?: boolean
   }
-) => any
+>
 
-export type RouteProxyHelp = (path: 'ProxyHelp') => any
+/** 代理补充说明 */
+export type RouteProxyHelp = Route<'ProxyHelp'>
 
+/** 猜你喜欢 */
 export type RouteLike = Route<
   'Like',
   {
+    /** 用户 ID, 为空使用自己 */
     userId?: UserId
   }
 >
 
-export type RouteShare = (
-  path: 'Share',
-  params: {
+/** 条目分享 */
+export type RouteShare = Route<
+  'Share',
+  {
+    /** 条目 ID */
     _subjectId: SubjectId
+
+    /** 条目类型中文 */
     _type: SubjectTypeCn | ''
+
+    /** 条目链接 */
     _url: string
+
+    /** base64 编码的封面图片 */
     _cover: `data:image/jpg;base64,${string}`
+
+    /** 标题 */
     _title: string
+
+    /** 内容 */
     _content: string
+
+    /** 详情 */
     _detail: string
   }
-) => any
+>
 
-export type RouteAward = (
-  path: 'Award',
-  params: {
+/** 年鉴 */
+export type RouteAward = Route<
+  'Award',
+  {
     /** 年鉴网络地址 */
     uri: string
   }
-) => any
+>
 
-export type RouteSetting = (
-  path: 'Setting',
-  params: {
+/** 设置 */
+export type RouteSetting = Route<
+  'Setting',
+  {
     /** 进入页面后展开子菜单 */
     open?: string
   }
-) => any
+>
 
+/** 预览 */
 export type RoutePreview = Route<
   'Preview',
   {
+    /** 条目 ID */
     subjectId: SubjectId
 
     /** 条目中文名 */
@@ -823,55 +954,98 @@ export type RoutePreview = Route<
   }
 >
 
+/** 照片墙 */
 export type RouteMilestone = Route<
   'Milestone',
   {
+    /** 用户 ID */
     userId?: UserId
 
-    /** filters */
+    /** 条目类型筛选 */
     subjectType?: SubjectType
+
+    /** 收藏状态筛选 */
     type?: CollectionStatus
+
+    /** 排序方式 */
     order?: CollectionsOrder
+
+    /** 标签筛选 */
     tag?: string
 
-    /** options, 若网页分享则全都为 string */
+    /** 列数 (网页分享为 string) */
     numColumns?: number | string
+
+    /** 是否圆角 (网页分享为 string) */
     radius?: boolean | string
+
+    /** 是否自动高度 (网页分享为 string) */
     autoHeight?: boolean | string
+
+    /** 中文优先 (网页分享为 string) */
     cnFirst?: boolean | string
+
+    /** 标题行数 (网页分享为 string) */
     numberOfLines?: number | string
+
+    /** 副标题 */
     subTitle?: string
+
+    /** 额外标题 */
     extraTitle?: string
+
+    /** 星标是否满色 (网页分享为 string) */
     starsFull?: boolean | string
+
+    /** 星标颜色 (网页分享为 string) */
     starsColor?: boolean | string
+
+    /** 是否显示 NSFW (网页分享为 string) */
     nsfw?: boolean | string
+
+    /** 是否显示最近时间 (网页分享为 string) */
     lastTime?: boolean | string
+
+    /** 数量限制 (网页分享为 string) */
     limit?: number | string
   }
 >
 
-export type RouteTinygrail = (path: `Tinygrail${string}`, params?: Record<string, any>) => any
+/**
+ * 小圣杯 (通用路由)
+ * 匹配所有 Tinygrail 开头的路径, 由内部路由表分发
+ */
+export type RouteTinygrail = (path: `Tinygrail${string}`, params?: Record<string, unknown>) => void
 
+/** 小圣杯 - 我的持仓 */
 export type RouteTinygrailCharaAssets = Route<
   'TinygrailCharaAssets',
   {
+    /** 用户 ID */
     userId?: UserId
+
+    /** 用户昵称 */
     userName?: string
+
+    /** 提示消息 */
     message?: string
+
+    /** 来源, lottery 表示来自抽奖 */
     form?: 'lottery' | undefined
   }
 >
 
+/** 小圣杯 - 交易 */
 export type RouteTinygrailDeal = Route<
   'TinygrailDeal',
   {
     /** 人物 ID */
     monoId?: MonoId
 
-    /** 交易类型 */
+    /** 交易类型, bid 为买, asks 为卖 */
     type?: 'bid' | 'asks'
 
-    /** 来源页面 */
+    /** 来源页面, trade 为交易, sacrifice 为献祭 */
     form?: 'trade' | 'sacrifice'
   }
 >

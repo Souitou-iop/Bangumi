@@ -2,61 +2,43 @@
  * @Author: czy0729
  * @Date: 2023-12-07 21:42:04
  * @Last Modified by: czy0729
- * @Last Modified time: 2024-01-07 23:25:29
+ * @Last Modified time: 2026-08-30 21:55:46
+ *
+ * web 端入口: fetch 资源 + 缓存去重 (cache.ts) + 解码 (decoder.ts)
  */
-import protobuf, { Reader } from 'protobufjs'
 import { logger } from '../dev'
-import { cacheMap, checkCache, get, isPromise, lockMap } from './utils'
-
-import type { Decode } from './types'
+import { get, runWithCache } from './cache'
+import { convert } from './converters'
+import { decodePayload } from './decoder'
 
 export { get }
 
+import type { Data, DataAssets } from './types'
+
+const TAG = '@utils/protobuf'
+
 /**
  * 解码数据
- *  - 同时多个同样的请求, 只会触发第一次请求, 后到的会持续等待到 promise 返回
- *  - 请求过的结果会缓存
+ *  - 同时多个同样的请求, 只会触发第一次请求, 并发方共享同一个结果
+ *  - 请求过的结果会缓存, 失败后下次调用可重试
  * */
-export const decode: Decode = name => {
-  const result = checkCache(name)
-  if (isPromise(result) || result !== true) return result
+export const decode = async <T extends DataAssets>(name: T): Promise<Data[T]> =>
+  runWithCache(name, async () => {
+    try {
+      const protoResponse = await fetch(`assets/proto/${name}/proto/index.proto`)
+      const protoText = await protoResponse.text()
 
-  return new Promise((resolve, reject) => {
-    const protoFile = `assets/proto/${name}/proto/index.proto`
-    fetch(protoFile)
-      .then(response => response.text())
-      .then(text => {
-        const { root } = protobuf.parse(text)
-        const message = root.lookupType('Payload')
+      const binResponse = await fetch(`assets/proto/${name}/bin/index.bin`)
+      const bytes = new Uint8Array(await binResponse.arrayBuffer())
 
-        const binFile = `assets/proto/${name}/bin/index.bin`
-        fetch(binFile)
-          .then(response => response.arrayBuffer())
-          .then(arrayBuffer => {
-            const reader = Reader.create(new Uint8Array(arrayBuffer))
-            const decodedMessage = message.decode(reader)
-            const { payload } = message.toObject(decodedMessage, {
-              longs: Number,
-              enums: Number,
-              bytes: String
-            })
-
-            cacheMap.set(name, payload)
-            lockMap.set(name, false)
-
-            logger.log('@utils/protobuf/decode', name, payload?.length)
-            resolve(payload)
-          })
-          .catch(() => {
-            reject('Error loading bin file')
-          })
-          .finally(() => {
-            lockMap.set(name, false)
-          })
+      const data = convert(name, decodePayload(protoText, bytes))
+      logger.log(TAG, 'decode', {
+        name,
+        length: Array.isArray(data) ? data.length : Object.keys(data).length
       })
-      .catch(() => {
-        reject('Error loading proto file')
-        lockMap.set(name, false)
-      })
+      return data
+    } catch (error) {
+      logger.log(TAG, 'decode', 'Error decode file', name)
+      throw 'Error decode file'
+    }
   })
-}

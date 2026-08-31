@@ -2,19 +2,17 @@
  * @Author: czy0729
  * @Date: 2022-03-12 04:56:17
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-07 19:08:49
+ * @Last Modified time: 2026-07-27 09:20:10
  */
 import React from 'react'
 import { observer } from 'mobx-react'
 import { _ } from '@stores'
 import { stl } from '@utils'
-import { r } from '@utils/dev'
 import { FROZEN_FN, IOS } from '@constants'
 import { Flex } from '../../flex'
 import { Iconfont } from '../../iconfont'
 import { Menu } from '../../menu'
 import { Popover as PopoverComp } from '../../popover'
-import { COMPONENT } from './ds'
 import { styles } from './styles'
 
 import type { PopoverData } from '../../popover'
@@ -31,8 +29,6 @@ function Popover<Data extends PopoverData>({
   children,
   ...other
 }: Props<Data>) {
-  r(COMPONENT)
-
   const commonProps = {
     style: stl(styles.touch, style),
     placement: 'bottom',
@@ -46,7 +42,9 @@ function Popover<Data extends PopoverData>({
             style={menuStyle}
             data={data}
             onSelect={(title: Data[number], index: number) => {
-              setTimeout(() => onSelect(title, index), 0)
+              setTimeout(() => {
+                onSelect(title, index)
+              }, 0)
             }}
           />
         )

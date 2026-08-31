@@ -2,14 +2,14 @@
  * @Author: czy0729
  * @Date: 2023-05-14 07:14:22
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-05 20:39:14
+ * @Last Modified time: 2026-08-18 07:40:43
  */
 import { _, systemStore, usersStore, userStore } from '@stores'
 import { getCover400, getCoverMedium, getTimestamp, navigationReference } from '@utils'
 import { syncUserStore } from '@utils/async'
 import { t } from '@utils/fetch'
 import { axiosWithProxyRedirect } from '@utils/proxy'
-import axios from '@utils/thirdParty/axios'
+import { axios } from '@utils/thirdParty'
 import {
   HOST_CDN_AVATAR,
   HOST_IMAGE,
@@ -26,16 +26,18 @@ import type { Props } from './types'
 const TS = Math.floor(getTimestamp() / 604800)
 
 /** 大质量头像 */
-const USER_LARGE = `${HOST_IMAGE}/pic/user/l/`
+const USER_LARGE = `${HOST_IMAGE}/pic/user/l/` as const
 
 /**
  * 判断是否自己的头像, 若是不走 CDN, 保证最新
  * 注意头像后面 ?r=xxx 的参数不要去掉, 因头像地址每个人都唯一, 需要防止本地缓存
  */
-function checkSelf(src: any) {
+function checkSelf<T>(src: T): T | string {
+  if (typeof src !== 'string') return src
+
   const medium = getCoverMedium(src, true)
 
-  let value = src
+  let value: T | string = src
   if (typeof medium === 'string') {
     const { avatar } = userStore.usersInfo()
     if (avatar?.medium) {
@@ -55,12 +57,13 @@ function checkSelf(src: any) {
 }
 
 /** 判断是否空, 若是使用默认值 */
-function checkNull(src: any) {
+function checkNull<T>(src: T): T | string {
+  if (typeof src !== 'string') return src
   return getCoverMedium(src, true)
 }
 
 /** 判断是否为默认头像, 若是直接使用本地的默认头像, 避免不必要的网络请求 */
-function checkDefault(src: any) {
+function checkDefault<T>(src: T): T | string | number {
   if (typeof src === 'string') {
     if (src.includes(URL_DEFAULT_AVATAR)) return IMG_AVATAR_DEFAULT
     if (src.includes(URL_DEFAULT_MONO)) return IMG_DEFAULT
@@ -69,10 +72,8 @@ function checkDefault(src: any) {
 }
 
 /** 处理头像地址 */
-export function getAvatar(src: any) {
-  let avatar: any
-
-  avatar = checkSelf(src)
+export function getAvatar<T>(src: T): T | string | number {
+  let avatar: T | string | number = checkSelf(src)
   if (!avatar) avatar = checkNull(src)
   avatar = checkDefault(avatar)
 
@@ -80,10 +81,10 @@ export function getAvatar(src: any) {
 }
 
 /** 判断是否使用 CDN */
-export function getCDNAvatar(
-  src: any,
+export function getCDNAvatar<T>(
+  src: T,
   prefix: 'bgm_poster_100' | 'bgm_poster_200' = 'bgm_poster_100'
-) {
+): T | string {
   if (
     !systemStore.setting.cdn ||
     !systemStore.cdnAvatar ||
@@ -135,7 +136,7 @@ export function getOnPress(
     event?: Props['event']
     src?: Props['src']
     name?: Props['name']
-    params?: Props['params']
+    params?: Record<string, unknown>
   } = {}
 ) {
   const navigationRef = navigation || navigationReference()
@@ -166,7 +167,7 @@ export function getOnPress(
 }
 
 /** 强制使用 /l/ */
-function fixedLarge(src: any) {
+function fixedLarge<T>(src: T): T | string {
   return typeof src !== 'string'
     ? src
     : src.replace(/\/\/lain.bgm.tv\/pic\/user\/(m|s)\//g, USER_LARGE)
@@ -176,37 +177,37 @@ function fixedLarge(src: any) {
  * 网页端新出的图片规则, 需要处理一下
  * 如果地址有 number x number 是必须使用 /l/ 的
  */
-export function fixedSize(src: any) {
+export function fixedSize<T>(src: T): T | string {
   return typeof src !== 'string'
     ? src
     : src.replace(/\/r\/(\d+)x(\d+)\/pic\/cover\/(s|c|m)\//g, '/r/$1x$2/pic/cover/l/')
 }
 
 /** 网页端新出的图片规则, 地址后接 hd=1 开启高清头像 */
-export function fixedHD(src: any) {
-  if (typeof src === 'string' && src.indexOf('//') === 0) src = `https:${src}`
+export function fixedHD<T>(src: T): T | string {
+  if (typeof src !== 'string') return src
 
-  if (
-    typeof src !== 'string' ||
-    !src.includes(HOST_IMAGE) ||
-    src.includes('hd=') ||
-    !src.includes('r=')
-  ) {
-    return src
+  let value: string = src
+  if (value.indexOf('//') === 0) value = `https:${value}`
+
+  if (!value.includes(HOST_IMAGE) || value.includes('hd=') || !value.includes('r=')) {
+    return value
   }
 
-  return src.includes('?') ? `${src}&hd=1` : `${src}?hd=1`
+  return value.includes('?') ? `${value}&hd=1` : `${value}?hd=1`
 }
 
 /** 自动修复图片地址 */
-export function fixedAll(src: any, size: number) {
-  let _src = fixedLarge(src)
-  _src = fixedSize(_src)
-  _src = fixedHD(_src)
-  _src = getCDNAvatar(_src, size >= 100 ? 'bgm_poster_200' : 'bgm_poster_100')
+export function fixedAll<T>(src: T, size: number): T | string {
+  if (typeof src !== 'string') return src
+
+  let result: string = fixedLarge(src)
+  result = fixedSize(result)
+  result = fixedHD(result)
+  result = getCDNAvatar(result, size >= 100 ? 'bgm_poster_200' : 'bgm_poster_100')
 
   // 有时候 Avatar 组件也会被条目封面传入使用, 需要避免使用大图
-  return getCover400(_src, size >= 100 ? 200 : 100)
+  return getCover400(result, size >= 100 ? 200 : 100)
 }
 
 /** 获取头像 API 跳转后的地址 */
@@ -214,7 +215,7 @@ export async function head(url: string) {
   const { accessToken } = syncUserStore()
 
   try {
-    const { redirectUrl } = await axiosWithProxyRedirect(axios as any, {
+    const { redirectUrl } = await axiosWithProxyRedirect(axios, {
       method: 'get',
       url,
       headers: {

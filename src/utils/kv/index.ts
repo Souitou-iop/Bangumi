@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-06-23 01:47:51
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-11 05:45:07
+ * @Last Modified time: 2026-08-30 05:33:32
  */
 import Constants from 'expo-constants'
 import { WEB } from '@constants/device'
@@ -29,10 +29,14 @@ import type { TranslateResult, UserId } from '@types'
 import type {
   GenerateType,
   Result,
+  ResultAvatarHistory,
   ResultCollectList,
+  ResultCompletions,
+  ResultGenerate,
   ResultGroupTopics,
   ResultHeatmap,
   ResultPicList,
+  ResultPicListResponse,
   ResultRecommendTopics,
   ResultTemp
 } from './type'
@@ -40,7 +44,7 @@ import type {
 let userAgent = ''
 
 /** 获取 */
-export async function get<T = any>(key: string): Promise<T | null> {
+export async function get<T = unknown>(key: string): Promise<T | null> {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   // 部分没有登录的用户, 出现了预料之外的请求, 统一过滤掉
@@ -49,7 +53,7 @@ export async function get<T = any>(key: string): Promise<T | null> {
   }
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'get',
       url: `${HOST}/v1/get/${key}`
     })
@@ -65,7 +69,7 @@ export async function get<T = any>(key: string): Promise<T | null> {
 
 /** 批量获取 */
 export async function gets<
-  T = any,
+  T = unknown,
   K extends keyof T = keyof T,
   Keys extends readonly string[] = string[]
 >(
@@ -91,7 +95,7 @@ export async function gets<
   if (picker) query.data.picker = picker
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/get`,
       headers: HEADERS,
@@ -100,11 +104,11 @@ export async function gets<
 
     const response = Crypto.get<Result<Record<Keys[number], T | null>>>(data)
     if (response?.code === 200) {
-      log('gets', keys.slice(0, 8), keys.length)
+      log('gets', { keys: keys.slice(0, 8), length: keys.length })
       return response.data
     }
   } catch (error) {
-    err('gets', error, keys.slice(0, 8), keys.length)
+    err('gets', { keys: keys.slice(0, 8), length: keys.length }, error)
   }
 
   return null
@@ -136,9 +140,9 @@ export async function update(
     if (UPDATE_CACHE_MAP.has(finger)) return
 
     UPDATE_CACHE_MAP.set(finger, true)
-    log('update', key, finger)
+    log('update', { key, finger })
   } else {
-    log('update', key)
+    log('update', { key })
   }
 
   const payload =
@@ -149,7 +153,7 @@ export async function update(
       : { ts: getTimestamp(), ...value }
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/update`,
       headers: HEADERS,
@@ -158,23 +162,23 @@ export async function update(
 
     return Crypto.get(data)
   } catch (error) {
-    err('update', error, key)
+    err('update', { key }, error)
   }
 
   return null
 }
 
 /** 查询在线 */
-export async function onlines(): Promise<Result | null> {
+export async function onlines(): Promise<Record<UserId, string> | null> {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'get',
       url: `${HOST}/v1/online/get`
     })
 
-    const response = Crypto.get<Result>(data)
+    const response = Crypto.get<Result<Record<UserId, string>>>(data)
     if (response?.code === 200) return response?.data || {}
   } catch (error) {
     err('onlines', error)
@@ -188,7 +192,7 @@ export async function report(userID: string | number): Promise<Result | null> {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/online/report`,
       headers: HEADERS,
@@ -208,7 +212,7 @@ export async function is(userID: string | number, topicID: string): Promise<Resu
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'get',
       url: `${HOST}/v1/collect/user/is?topicID=${topicID}&userID=${userID}`
     })
@@ -230,7 +234,7 @@ export async function collect(
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/collect/user/update`,
       headers: HEADERS,
@@ -254,7 +258,7 @@ export async function collectList(userID: string | number): Promise<ResultCollec
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'get',
       url: `${HOST}/v1/collect/user/list?userID=${userID}`
     })
@@ -276,7 +280,7 @@ export async function temp(
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/temp/upload`,
       headers: HEADERS,
@@ -307,7 +311,7 @@ export async function search(q: string, withMessage: boolean = false): Promise<R
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/topic/search`,
       headers: HEADERS,
@@ -327,13 +331,13 @@ export async function search(q: string, withMessage: boolean = false): Promise<R
 
 /**
  * 分词
- * @returns [关键词, 权重整数数字的字符串][]
+ * @returns [关键词, 权重小数字符串][]
  * */
 export async function extract(q: string) {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/jieba/extract`,
       headers: HEADERS,
@@ -349,7 +353,7 @@ export async function extract(q: string) {
         weight: number
       }[]
     >(data)
-    return response.map(item => [item.word, item.weight.toFixed(0)]) as [string, string][]
+    return response.map(item => [item.word, item.weight.toFixed(3)]) as [string, string][]
   } catch (error) {
     err('extract', error)
   }
@@ -362,7 +366,7 @@ export async function collectRank(count: number = 300) {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/collect/rank`,
       headers: HEADERS,
@@ -387,7 +391,7 @@ export async function list(count: number = 100) {
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<string>({
       method: 'post',
       url: `${HOST}/v1/collect/rank`,
       headers: HEADERS,
@@ -416,7 +420,7 @@ function lxKey(text: string) {
 /** 查询翻译云缓存 */
 export async function lxCache(text: string): Promise<false | TranslateResult> {
   const k = lxKey(text)
-  const cache = await get(k)
+  const cache = await get<{ data: TranslateResult }>(k)
   if (Array.isArray(cache?.data) && cache.data.length) return cache.data
   return false
 }
@@ -467,7 +471,7 @@ export async function completions(
       if (version === '2') return c2(prompt, roleSystem, roleUser)
     }
 
-    const response = await axios({
+    const response = await axios<ResultCompletions>({
       method: 'post',
       url: HOST_COMPLETIONS,
       headers: {
@@ -502,11 +506,11 @@ async function c2(prompt: string, roleSystem: string, roleUser: string) {
   if (!userAgent) userAgent = await Constants.getWebViewUserAgentAsync()
 
   try {
-    const response = await axios({
+    const response = await axios<ResultCompletions>({
       method: 'post',
       url: HOST_C2,
       headers: {
-        ...JSON.parse(HOST_C2_CONFIG),
+        ...(JSON.parse(HOST_C2_CONFIG) as Record<string, string>),
         'User-Agent': userAgent
       },
       data: {
@@ -551,7 +555,7 @@ async function c2(prompt: string, roleSystem: string, roleUser: string) {
 export async function generate(
   type: GenerateType = 'subject',
   id: string | number,
-  regenerate = false,
+  regenerate: boolean = false,
   customPrompt?: string
 ): Promise<string> {
   if (isDevtoolsOpen()) return Promise.reject('denied')
@@ -559,19 +563,25 @@ export async function generate(
   if (!userAgent) userAgent = await Constants.getWebViewUserAgentAsync()
 
   try {
-    const body: Record<string, any> = { type, id, regenerate }
+    const body: {
+      type: GenerateType
+      id: string | number
+      regenerate: boolean
+      subKind?: GenerateType
+      customPrompt?: string
+    } = { type, id, regenerate }
     if (type === 'person' || type === 'character') {
       body.type = 'character'
       body.subKind = type
     }
     if (customPrompt) body.customPrompt = customPrompt
 
-    log('generate', body)
-    const { data } = await axios({
+    log('generate', { body })
+    const { data } = await axios<ResultGenerate>({
       method: 'post',
       url: `${HOST_RY_MK_AI}/generate`,
       headers: {
-        ...JSON.parse(HOST_C2_CONFIG),
+        ...(JSON.parse(HOST_C2_CONFIG) as Record<string, string>),
         'User-Agent': userAgent
       },
       data: body
@@ -589,7 +599,7 @@ export async function picList(prefix: string, maxKeys: number = 100): Promise<Re
   if (isDevtoolsOpen()) return Promise.reject('denied')
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<ResultPicListResponse>({
       method: 'get',
       url: `${HOST_PIC_LIST}?prefix=${decodeURIComponent(prefix)}&maxKeys=${maxKeys}`
     })
@@ -608,7 +618,7 @@ export async function heatmap(username: UserId): Promise<false | ResultHeatmap> 
   if (!userAgent) userAgent = await Constants.getWebViewUserAgentAsync()
 
   try {
-    const response = await axios({
+    const response = await axios<ResultHeatmap>({
       method: 'get',
       url: `${HOST_HM}/${username}`,
       headers: {
@@ -649,7 +659,7 @@ export async function groupTopics(
   } = options
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<ResultGroupTopics>({
       method: 'get',
       url: `${HOST_RY_MK}/v1/group-topics?user=${username}&target=${target}&min_replies=${minReplies}&include_blocked=${includeBlocked}&exact=${exact}&sort=${sort}&limit=${limit}&offset=${offset}`
     })
@@ -690,7 +700,7 @@ export async function searchGroupTopics(
   } = options
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<ResultGroupTopics>({
       method: 'get',
       url: [
         `${HOST_RY_MK}/v1/group-topics?q=${encodeURIComponent(q)}`,
@@ -728,7 +738,7 @@ export async function recommendTopics(
   const { limit = 10, offset = 0 } = options
 
   try {
-    const { data } = await axios({
+    const { data } = await axios<ResultRecommendTopics>({
       method: 'get',
       url: `${HOST_RY_MK}/recommend/topics/${topicId}?limit=${limit}&offset=${offset}`
     })
@@ -739,4 +749,34 @@ export async function recommendTopics(
   }
 
   return null
+}
+
+/** 历史头像 */
+export async function avatarHistory(username: UserId): Promise<ResultAvatarHistory | null> {
+  if (isDevtoolsOpen()) return Promise.reject('denied')
+
+  try {
+    const { data } = await axios<ResultAvatarHistory>({
+      method: 'get',
+      url: `${HOST_RY_MK}/search/users/${username}/avatars`
+    })
+
+    if (data?.history?.length) return data
+  } catch (error) {
+    err('avatarHistory', error)
+  }
+
+  return null
+}
+
+/** 历史头像图片地址 */
+export function avatarImageUrl(url?: string): string {
+  let originalUrl = String(url || '')
+  if (!originalUrl) return ''
+
+  if (originalUrl.startsWith('//')) originalUrl = `https:${originalUrl}`
+
+  if (/_[\w-]+\.(jpg|jpeg|png|gif|webp)$/i.test(originalUrl.split('?')[0])) return originalUrl
+
+  return `${HOST_RY_MK}/search/avatar/proxy?url=${encodeURIComponent(originalUrl)}`
 }

@@ -2,20 +2,31 @@
  * @Author: czy0729
  * @Date: 2019-05-07 19:45:59
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-03-20 06:03:24
+ * @Last Modified time: 2026-08-27 23:45:30
  */
 import { Alert, Clipboard, findNodeHandle, NativeModules, Vibration } from 'react-native'
-import * as Haptics from 'expo-haptics'
-import Portal from '@ant-design/react-native/lib/portal'
-import { AntmActionSheet } from '@components/@/ant-design/action-sheet'
-import { Toast } from '@components/toast'
 import { IOS } from '@constants/constants'
 import { WEB } from '@constants/device'
 import { FROZEN_FN } from '@constants/init'
 import { syncS2T, syncSystemStore } from '../async'
 import { log } from './utils'
 
-import type { Fn } from '@types'
+import type { View } from 'react-native'
+import type { ActionSheetConfig, ActionSheetConfigOptions } from '@components/action-sheet'
+import type { TimerRef } from '@types'
+
+/**
+ * expo-haptics 与 Portal 组件较重, 函数内懒加载
+ * - haptics: Android 启动链不再求值 (iOS 经 hold-menu 仍在链上, 已在该处单独懒加载)
+ * - Portal: 打断 utils→components 反向耦合, 双向均不再强制全量求值
+ */
+function syncPortal(): typeof import('@components/portal')['Portal'] {
+  return (require('@components/portal') as typeof import('@components/portal')).Portal
+}
+
+function syncHaptics(): typeof import('expo-haptics') {
+  return require('expo-haptics') as typeof import('expo-haptics')
+}
 
 /**
  * Loading 指示器
@@ -26,16 +37,19 @@ import type { Fn } from '@types'
  */
 export function loading(text: string = 'Loading...', time: number = 0, delay: number = 1000) {
   let toastId: number
-  let timerId: any = setTimeout(() => {
+  let timerId: TimerRef = setTimeout(() => {
     timerId = null
+    const { Toast } = require('@components/toast') as {
+      Toast: { loading: (content: string, duration: number, onClose: () => void) => number }
+    }
     toastId = Toast.loading(syncS2T(text), time, () => {
-      if (toastId) Portal.remove(toastId)
+      if (toastId) syncPortal().remove(toastId)
     })
   }, delay)
 
   return () => {
     if (timerId !== null) clearTimeout(timerId)
-    if (toastId) Portal.remove(toastId)
+    if (toastId) syncPortal().remove(toastId)
   }
 }
 
@@ -49,6 +63,7 @@ export function feedback(light?: boolean) {
   log('feedback', 'vibration', light ? 'light' : '')
 
   if (IOS) {
+    const Haptics = syncHaptics()
     if (light) {
       Haptics.selectionAsync()
     } else {
@@ -62,9 +77,9 @@ export function feedback(light?: boolean) {
 /** 确定框 */
 export function confirm(
   content: string,
-  onPress = FROZEN_FN,
-  title = '警告',
-  onCancelPress = FROZEN_FN,
+  onPress: () => void = FROZEN_FN,
+  title: string = '警告',
+  onCancelPress: () => void = FROZEN_FN,
   confirmText: string = '确定',
   cancelText: string = '取消'
 ) {
@@ -137,27 +152,36 @@ export function alert(content: string, title: string = '提示') {
 export function info(
   content: string | number = '网络错误',
   duration: number = 2.4,
-  onClose: Fn = FROZEN_FN,
+  onClose: () => void = FROZEN_FN,
   mask: boolean = false
 ) {
-  Toast.info(syncS2T(content), duration, onClose, mask)
+  const { Toast } = require('@components/toast') as {
+    Toast: { info: (content: string, duration: number, onClose: () => void, mask: boolean) => void }
+  }
+  Toast.info(syncS2T(String(content)), duration, onClose, mask)
 }
 
 /**
- * @deprecated 显示 ActionSheet
- * https://rn.mobile.ant.design/components/action-sheet-cn/
+ * 显示 ActionSheet
  */
 export function showActionSheet(
-  options = [] as string[] | readonly string[],
-  callback = FROZEN_FN,
-  // @ts-expect-error
-  { title, message, cancelButtonIndex, destructiveButtonIndex } = {}
+  options: string[] | readonly string[] = [],
+  callback: (index: number) => void = () => {},
+  { title, message, cancelButtonIndex, destructiveButtonIndex }: ActionSheetConfigOptions = {}
 ) {
-  AntmActionSheet.showActionSheetWithOptions(
+  const { ActionSheetStatic } = require('@components/action-sheet') as {
+    ActionSheetStatic: {
+      showActionSheetWithOptions: (
+        config: ActionSheetConfig,
+        callback: (index: number) => void
+      ) => void
+    }
+  }
+  ActionSheetStatic.showActionSheetWithOptions(
     {
       title,
       message,
-      options,
+      options: [...options],
       cancelButtonIndex,
       destructiveButtonIndex
     },
@@ -168,9 +192,9 @@ export function showActionSheet(
 /** 显示 ImageViewer */
 export function showImageViewer(
   imageUrls: readonly {
-    url?: any
-    _url?: any
-    headers?: object
+    url?: string
+    _url?: string
+    headers?: Record<string, string>
   }[] = [],
   index: number = 0,
   mini: boolean = false,
@@ -190,11 +214,12 @@ export function closeImageViewer() {
 export function androidDayNightToggle(isDark?: boolean) {
   if (IOS || WEB) return
 
-  NativeModules.DayNight.setDarkMode(isDark ? 2 : 1)
+  const DayNight = NativeModules.DayNight as { setDarkMode: (mode: number) => void }
+  DayNight.setDarkMode(isDark ? 2 : 1)
 }
 
 /** 复制到剪贴板 */
-export function copy(val: any, message: boolean | string = true, ms?: number) {
+export function copy(val: string | number, message: boolean | string = true, ms?: number) {
   const string = String(val)
   Clipboard.setString(string)
 
@@ -209,35 +234,42 @@ export function copy(val: any, message: boolean | string = true, ms?: number) {
 }
 
 /** ScrollView 中滑动到 View 的位置 */
-export function scrollToView(viewRef: any, scrollViewRef: any, callback?: Fn) {
+export function scrollToView(
+  viewRef: {
+    measure: View['measure']
+    measureLayout: View['measureLayout']
+  },
+  scrollViewRef: {
+    scrollTo: (options: { y: number; animated: boolean }) => void
+  },
+  callback?: () => void
+) {
   if (!viewRef || !scrollViewRef) return false
 
-  if (IOS || WEB) {
-    viewRef.measure((_x: number, y: number) => {
-      scrollViewRef.scrollTo({
-        y,
-        animated: true
-      })
+  const scrollTo = (y: number) => {
+    scrollViewRef.scrollTo({
+      y,
+      animated: true
+    })
 
-      if (typeof callback === 'function') {
-        setTimeout(() => {
-          callback()
-        }, 240)
-      }
+    if (typeof callback === 'function') {
+      setTimeout(() => {
+        callback()
+      }, 240)
+    }
+  }
+
+  if (IOS || WEB) {
+    viewRef.measure((_x, y) => {
+      scrollTo(y)
     })
   } else {
-    viewRef.measureLayout(findNodeHandle(scrollViewRef), (_x: number, y: number) => {
-      scrollViewRef.scrollTo({
-        y,
-        animated: true
-      })
-
-      if (typeof callback === 'function') {
-        setTimeout(() => {
-          callback()
-        }, 240)
+    viewRef.measureLayout(
+      findNodeHandle(scrollViewRef as unknown as React.Component) as number,
+      (_x, y) => {
+        scrollTo(y)
       }
-    })
+    )
   }
 
   return true

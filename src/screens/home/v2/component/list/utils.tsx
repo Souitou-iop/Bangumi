@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-06-19 12:31:50
  * @Last Modified by: czy0729
- * @Last Modified time: 2024-05-18 18:18:10
+ * @Last Modified time: 2026-08-22 06:01:09
  */
 import React from 'react'
 import { MODEL_SUBJECT_TYPE } from '@constants'
@@ -12,6 +12,7 @@ import type { RenderItem, SubjectTypeValue } from '@types'
 import type { TabsLabel } from '../../types'
 import type { ItemType } from './types'
 
+/** 列表 key 提取 */
 export function keyExtractor(item: ItemType) {
   return String('subject_id' in item ? item.subject_id : item.id)
 }

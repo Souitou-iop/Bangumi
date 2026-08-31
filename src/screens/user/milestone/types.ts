@@ -4,7 +4,7 @@
  * @Last Modified by: czy0729
  * @Last Modified time: 2026-07-04 07:32:20
  */
-import type { UserCollectionsItem } from '@stores/collection'
+import type { UserCollectionsItem } from '@stores/collection/types'
 import type { GetRouteParams, RouteMilestone, WithNavigation } from '@types'
 import type Store from './store'
 import type { SUB_TITLE } from './ds'
@@ -19,10 +19,10 @@ export type SubTitle = (typeof SUB_TITLE)[number]
 
 /**
  * Milestone Item 预计算数据
- * 只包含不依赖 state 的数据转换结果
+ * 只包含不依赖交互状态的数据转换结果
  */
 export type MilestoneItemData = UserCollectionsItem & {
-  /** HTMLDecode 后的标题 */
+  /** HTMLDecode 后的标题 (跟随 cnFirst 设置) */
   titleDecoded: string
 
   /** 标题视觉长度 */

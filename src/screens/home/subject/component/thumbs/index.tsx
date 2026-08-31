@@ -2,10 +2,9 @@
  * @Author: czy0729
  * @Date: 2020-10-12 12:19:03
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-04-12 01:25:44
+ * @Last Modified time: 2026-08-27 02:07:58
  */
 import React, { useCallback, useState } from 'react'
-import { View } from 'react-native'
 import { observer } from 'mobx-react'
 import { Component, Flex, Heatmap, Iconfont, ScrollViewHorizontal, Text } from '@components'
 import { InView, PreventTouchPlaceholder, SectionTitle } from '@_'
@@ -13,6 +12,7 @@ import { _, systemStore, useStore } from '@stores'
 import { findSubjectCn, open, stl } from '@utils'
 import { HOST_DB_REFERER } from '@constants'
 import { TITLE_THUMBS } from '../../ds'
+import BlockAnchor from '../block-anchor'
 import IconHidden from '../icon/hidden'
 import IconPic from '../icon/pic'
 import IconPreview from '../icon/preview'
@@ -38,7 +38,7 @@ function Thumbs({ onBlockRef }: Props) {
 
   if (!$.showThumbs[1]) {
     return (
-      <Flex style={[_.container.wind, _.mt.sm]}>
+      <Flex style={stl(_.container.wind, _.mt.sm)}>
         <Flex.Item>
           <IconPic />
         </Flex.Item>
@@ -64,11 +64,7 @@ function Thumbs({ onBlockRef }: Props) {
 
   return (
     <Component id='screen-subject-thumbs'>
-      <View
-        ref={ref => onBlockRef(ref, TITLE_THUMBS)}
-        style={_.container.layout}
-        collapsable={false}
-      />
+      <BlockAnchor title={TITLE_THUMBS} onBlockRef={onBlockRef} />
 
       <InView
         style={stl(
@@ -120,7 +116,7 @@ function Thumbs({ onBlockRef }: Props) {
         )}
 
         {showThumbs && !!thumbsReference && (
-          <Flex style={[_.container.wind, _.mt.sm]}>
+          <Flex style={stl(_.container.wind, _.mt.sm)}>
             <Flex.Item>
               <IconPic />
             </Flex.Item>

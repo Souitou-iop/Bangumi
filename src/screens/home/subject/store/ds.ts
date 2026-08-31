@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-05-11 19:30:15
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-05-27 06:03:25
+ * @Last Modified time: 2026-08-26 20:52:51
  */
 import { _ } from '@stores'
 import { LIST_EMPTY } from '@constants'
@@ -10,7 +10,14 @@ import { COMPONENT } from '../ds'
 
 import type { CompletionItem, Loaded, RatingStatus, Sites, TranslateResult } from '@types'
 import type { DlsiteImage, VndbScreenshot } from '@utils/thirdParty/dlsite-vndb'
-import type { AnitabiData, EpsData, RecData, SubjectCommentValue, SubjectSnapshot, VideoItem } from '../types'
+import type {
+  AnitabiData,
+  EpsData,
+  RecData,
+  SubjectCommentValue,
+  SubjectSnapshot,
+  VideoItem
+} from '../types'
 
 /** 唯一命名空间 */
 export const NAMESPACE = `Screen${COMPONENT}` as const
@@ -21,7 +28,7 @@ export const RESET_STATE = {
   fixed: false,
 
   /** 可视范围底部 y */
-  visibleBottom: Math.floor(_.window.height * 2),
+  visibleBottom: Math.floor(_.window.height * 3),
 
   /** 当前页面实例是否在路由栈中 (用于退出页面后马上拦截剩余的请求) */
   focused: false,
@@ -50,7 +57,7 @@ export const EXCLUDE_STATE = {
   vol: '' as string | number,
 
   /** 吐槽分数分组 */
-  filterScores: [],
+  filterScores: [] as (string | number)[],
 
   /** 翻译缓存 */
   translateResult: [] as TranslateResult,
@@ -121,7 +128,7 @@ export const STATE = {
   } as RecData,
 
   /** 缩略图 */
-  epsThumbs: [],
+  epsThumbs: [] as string[],
 
   /** 缩略图请求 header */
   epsThumbsHeader: {} as {
@@ -221,7 +228,7 @@ export const SORT_RELATION_DESC = {
   游戏: 40,
   三次元: 30,
   其他: -10
-} as const
+} satisfies Record<string, number>
 
 /** 完全隐藏一个模块 */
 export const NON_SHOW = [false, false] as const

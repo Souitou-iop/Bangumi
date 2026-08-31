@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-11-20 11:15:18
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-17 05:16:42
+ * @Last Modified time: 2026-08-27 04:06:32
  */
 import React from 'react'
 import { View } from 'react-native'
@@ -16,7 +16,7 @@ import { COMPONENT, PREV_TEXT } from './ds'
 import type { UserCollectionItem } from '@stores/user/types'
 import type { UserCollectionsItem } from '@stores/collection/types'
 import type { Ctx } from '../../../types'
-import type { Props } from './types'
+import type { FindItem, Props } from './types'
 
 function Layout({ title }: Props) {
   const { $ } = useStore<Ctx>(COMPONENT)
@@ -33,7 +33,7 @@ function Layout({ title }: Props) {
       .filter(item => item.subject_id != null)
       .map(item => [item.subject_id, item])
   )
-  let find: any = isGame ? grid : subjectMap.get(current)
+  let find: FindItem | undefined = isGame ? grid : subjectMap.get(current)
   let tip = ''
 
   /**
@@ -42,13 +42,13 @@ function Layout({ title }: Props) {
    */
   if (title === '全部' && !find && systemStore.setting.showGame) {
     const gameMap = new Map(
-      (list as UserCollectionsItem[])
+      (list as unknown as UserCollectionsItem[])
         .filter(item => item.id != null)
         .map(item => [String(item.id), item])
     )
-    find = gameMap.get(String(current))
-    if (find) {
-      tip = find?.tip || ''
+    const findGame = gameMap.get(String(current))
+    if (findGame) {
+      tip = findGame.tip || ''
       find = grid
     }
   } else if (isGame) {

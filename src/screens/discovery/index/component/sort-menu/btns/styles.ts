@@ -7,10 +7,12 @@
 import { _ } from '@stores'
 import { WEB } from '@constants'
 
+import type { ViewStyle } from 'react-native'
+
 export const memoStyles = _.memoStyles(() => ({
   wrap: {
     // 只在 WEB 允许使用 position: fixed
-    position: _.web('fixed' as any, _.ios('relative', 'absolute')),
+    position: _.web('fixed' as ViewStyle['position'], _.ios('relative', 'absolute')),
     zIndex: 1,
     right: _.web(_.wind, 0),
     bottom: _.web(92, _.ios(0, _.md)),

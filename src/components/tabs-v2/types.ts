@@ -2,31 +2,91 @@
  * @Author: czy0729
  * @Date: 2022-08-19 05:07:08
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-12-25 05:13:41
+ * @Last Modified time: 2026-08-18 10:00:00
  */
+import type { ReactNode } from 'react'
 import type { ColorValue, WithViewStyles } from '@types'
+import type { SceneRendererProps } from '@components/tab-view'
+import type { OverrideNavigationState } from '@components/tab-view'
 
+/** Tab 路由数据 */
 export type Route = {
-  key?: string
+  /** 路由唯一标识 */
+  key: string
+
+  /** 路由标题 */
   title?: string
 }
 
-type Label<T extends Route> = {
-  route?: T
-  focused?: boolean
+/** Tab 标签渲染参数 */
+export type Label<T extends Route> = {
+  /** 路由数据 */
+  route: T
+
+  /** 是否选中 */
+  focused: boolean
+}
+
+/** TabBar 渲染参数 */
+export type TabBarSceneProps<T extends Route> = SceneRendererProps & {
+  navigationState: OverrideNavigationState<T>
+}
+
+/** 渲染 TabBar 参数 */
+export type UseRenderTabBarOptions<T extends Route> = {
+  /** Tab 宽度 */
+  tabWidth: number
+
+  /** TabBar 背景色 */
+  backgroundColor?: ColorValue
+
+  /** TabBar 底部边框颜色 */
+  borderBottomColor?: ColorValue
+
+  /** 选中指示器颜色 */
+  underlineColor?: ColorValue
+
+  /** 自定义渲染 Tab 标签 */
+  renderLabel?: (item: Label<T>) => ReactNode
+
+  /** Tab 文字颜色 */
+  textColor?: ColorValue
 }
 
 export type Props<T extends Route> = WithViewStyles<{
+  /** 路由列表 */
   routes: readonly T[]
+
+  /** 指定 TabBar 显示的 Tab 数量, 默认为 routes.length */
   tabBarLength?: number
+
+  /** 当前选中的 Tab 索引 */
   page?: number
+
+  /** 是否延迟渲染未选中的 Tab 内容, 默认 true */
   lazy?: boolean
+
+  /** Tab 文字颜色 */
   textColor?: ColorValue
+
+  /** TabBar 背景色 */
   backgroundColor?: ColorValue
+
+  /** TabBar 底部边框颜色 */
   borderBottomColor?: ColorValue
+
+  /** 选中指示器颜色 */
   underlineColor?: ColorValue
-  renderContentHeaderComponent?: any
-  renderItem: (item: T, index?: number) => any
-  renderLabel?: (item: Label<T>) => any
-  onChange?: (arg0: any) => any
+
+  /** TabBar 下方、内容区域上方的自定义头部组件 */
+  renderContentHeaderComponent?: ReactNode
+
+  /** 渲染每个 Tab 对应的内容 */
+  renderItem: (item: T, index?: number) => JSX.Element
+
+  /** 自定义渲染 Tab 标签 */
+  renderLabel?: (item: Label<T>) => ReactNode
+
+  /** Tab 切换回调 */
+  onChange?: (index: number) => void
 }>

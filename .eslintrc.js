@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2019-03-13 05:15:36
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-25 18:31:01
+ * @Last Modified time: 2026-08-08 10:17:54
  */
 module.exports = {
   root: true,
@@ -14,6 +14,7 @@ module.exports = {
   ignorePatterns: [
     '/components/@/*',
     '/eslint-rules',
+    '/ext',
     '/node_modules',
     '/src/utils/thirdParty/*',
     'babel.config.js',
@@ -50,6 +51,14 @@ module.exports = {
       env: {
         jest: true,
         node: true
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 0,
+        '@typescript-eslint/no-unsafe-argument': 0,
+        '@typescript-eslint/no-unsafe-assignment': 0,
+        '@typescript-eslint/no-unsafe-call': 0,
+        '@typescript-eslint/no-unsafe-member-access': 0,
+        '@typescript-eslint/no-unsafe-return': 0
       }
     }
   ],
@@ -87,7 +96,11 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': [
       2,
       {
-        ignoreRestSiblings: true
+        ignoreRestSiblings: true,
+        caughtErrors: 'none',
+
+        /** factory 实例仅用于 typeof 导出类型（如 const f = factory(Store)） */
+        varsIgnorePattern: '^f$'
       }
     ],
 

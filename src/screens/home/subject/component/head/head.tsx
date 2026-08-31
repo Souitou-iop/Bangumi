@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-07-16 11:46:06
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-05-27 07:51:53
+ * @Last Modified time: 2026-08-25 05:11:18
  */
 import React from 'react'
 import { View } from 'react-native'
@@ -16,6 +16,7 @@ import {
   getVisualLength,
   info,
   sliceByVisualLength,
+  stl,
   toFixed
 } from '@utils'
 import { memo } from '@utils/decorators'
@@ -106,12 +107,9 @@ const Head = memo(
       <>
         {showRelease && (
           <Text
-            style={[
-              styles.release,
-              {
-                left: leftOffset
-              }
-            ]}
+            style={stl(styles.release, {
+              left: leftOffset
+            })}
             type='__plain__'
             size={10}
             bold
@@ -121,13 +119,10 @@ const Head = memo(
         )}
         <View style={styles.topLine} />
         <View
-          style={[
-            styles.content,
-            {
-              minHeight: imageHeight - _.r(20),
-              paddingLeft: leftOffset
-            }
-          ]}
+          style={stl(styles.content, {
+            minHeight: imageHeight - _.r(20),
+            paddingLeft: leftOffset
+          })}
         >
           <View
             style={{
@@ -135,7 +130,7 @@ const Head = memo(
             }}
           >
             <View>
-              <Katakana.Provider size={size} lineHeight={size + 1} bold>
+              <Katakana.Provider firstLineStyle={_.mt.xs} size={size} lineHeight={size + 1} bold>
                 <Katakana
                   size={size}
                   lineHeight={size + 1}
@@ -158,28 +153,29 @@ const Head = memo(
                 </Katakana>
               </Katakana.Provider>
               {(!subjectSeries || (!!top && top !== bottom)) && (
-                <Katakana.Provider
-                  style={!!bottom && _.mt.xs}
-                  itemStyle={styles.katakana}
-                  type='sub'
-                  size={topSize}
-                  numberOfLines={hasSeries ? 2 : 4}
-                >
-                  <Katakana
+                <View style={!!bottom && _.mt.xs}>
+                  <Katakana.Provider
+                    firstLineStyle={_.mt.sm}
                     type='sub'
                     size={topSize}
                     numberOfLines={hasSeries ? 2 : 4}
-                    onLongPress={() => {
-                      copy(top)
-
-                      t('条目.复制标题', {
-                        subjectId
-                      })
-                    }}
                   >
-                    {topsString}
-                  </Katakana>
-                </Katakana.Provider>
+                    <Katakana
+                      type='sub'
+                      size={topSize}
+                      numberOfLines={hasSeries ? 2 : 4}
+                      onLongPress={() => {
+                        copy(top)
+
+                        t('条目.复制标题', {
+                          subjectId
+                        })
+                      }}
+                    >
+                      {topsString}
+                    </Katakana>
+                  </Katakana.Provider>
+                </View>
               )}
               <Heatmap id='条目.复制标题' />
             </View>
@@ -195,7 +191,9 @@ const Head = memo(
               </>
             )}
             {!!duration && <Tag style={styles.duration} type='sub' size={12} value={duration} />}
-            {!!musicDuration && <Tag style={styles.duration} type='sub' size={12} value={musicDuration} />}
+            {!!musicDuration && (
+              <Tag style={styles.duration} type='sub' size={12} value={musicDuration} />
+            )}
             {!!gameDuration && (
               <Touchable
                 onPress={() => {

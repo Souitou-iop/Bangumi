@@ -4,7 +4,7 @@
  * @Author: czy0729
  * @Date: 2022-05-23 07:22:37
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-24 05:44:23
+ * @Last Modified time: 2026-08-28 01:38:20
  */
 import { syncSystemStore } from '@utils/async'
 import Crypto from '@utils/crypto'
@@ -25,7 +25,7 @@ const OTA_SUBJECT_HASH_VERSION = '@cdn|oss-subject-hash|version|210720'
 const OTA_SUBJECT_HASH_DATA = '@cdn|oss-subject-hash|data|210720'
 
 /** @deprecated */
-let cacheSubject = {}
+let cacheSubject: Record<string, string> = {}
 
 /** @deprecated */
 let hashSubjectOTA = {}
@@ -39,13 +39,13 @@ export const initHashSubjectOTA = async () => {
 
   // 云版本
   // 版本没有 OTA 高需要重新请求数据
-  const version = (await getStorage(OTA_SUBJECT_HASH_VERSION)) || VERSION_OSS
+  const version = ((await getStorage(OTA_SUBJECT_HASH_VERSION)) || VERSION_OSS) as string
   const data = (await getStorage(OTA_SUBJECT_HASH_DATA)) || {}
 
   const ota = getOTA()
   const needUpdate =
     (!hashSubjectLoaded && !Object.keys(data).length) ||
-    parseInt(ota.VERSION_OSS) > parseInt(version)
+    parseInt(ota.VERSION_OSS as string) > parseInt(version)
 
   // 没缓存也要请求数据
   if (needUpdate || !Object.keys(data).length) {
@@ -82,7 +82,7 @@ export const initHashSubjectOTA = async () => {
   hashSubjectLoaded = true
   hashSubjectOTA = {
     ...hashSubjectOTA,
-    ...data
+    ...(data as Record<string, unknown>)
   }
   cacheSubject = {}
 }
@@ -91,7 +91,7 @@ export const initHashSubjectOTA = async () => {
 export const getHashSubjectOTA = () => hashSubjectOTA
 
 /** @deprecated 条目封面 CDN */
-export const CDN_OSS_SUBJECT = (src: any, cdnOrigin?: 'OneDrive' | 'fastly') => {
+export const CDN_OSS_SUBJECT = <T>(src: T, cdnOrigin?: 'OneDrive' | 'fastly'): T | string => {
   if (typeof src !== 'string') return src
   if (cacheSubject[src]) return cacheSubject[src]
 
@@ -107,7 +107,7 @@ export const CDN_OSS_SUBJECT = (src: any, cdnOrigin?: 'OneDrive' | 'fastly') => 
   if (_hash in hashSubjectOTA) {
     const ota = getOTA()
     const version =
-      parseInt(ota.VERSION_OSS) > parseInt(VERSION_OSS) ? ota.VERSION_OSS : VERSION_OSS
+      parseInt(ota.VERSION_OSS as string) > parseInt(VERSION_OSS) ? ota.VERSION_OSS : VERSION_OSS
 
     const path = _hash.slice(0, 1).toLocaleLowerCase()
     let cdnSrc
@@ -143,17 +143,17 @@ export { CDN_MAGMA }
 const REG_COVER = /\/(c|l)\//
 
 /** MAGMA CDN */
-export const CDN_OSS_MAGMA_POSTER = (
-  src: any = '',
+export const CDN_OSS_MAGMA_POSTER = <T>(
+  src?: T,
   prefix: 'bgm_poster_100' | 'bgm_poster_200' | 'bgm_poster' | string = 'bgm_poster'
-) => {
+): T | string => {
   if (
     typeof src !== 'string' ||
     src === '' ||
     !REG_COVER.test(src) ||
     /\/(photo|user|icon)\/|_(crt|prsn)_/.test(src)
   ) {
-    return src
+    return src as T
   }
 
   const poster = src.split(REG_COVER)?.[2] || ''
@@ -163,8 +163,8 @@ export const CDN_OSS_MAGMA_POSTER = (
 }
 
 /** MAGMA MONO CDN */
-export const CDN_OSS_MAGMA_MONO = (src: any = '') => {
-  if (typeof src !== 'string' || src === '') return src
+export const CDN_OSS_MAGMA_MONO = <T>(src?: T): T | string => {
+  if (typeof src !== 'string' || src === '') return src as T
 
   const mono = (src.split('.jpg')?.[0] || '').split('/pic/')?.[1] || ''
   if (!mono || !initCDN()) return src
@@ -173,8 +173,8 @@ export const CDN_OSS_MAGMA_MONO = (src: any = '') => {
 }
 
 /** MAGMA PIC CDN */
-export const CDN_OSS_MAGMA_PIC = (src: any = '') => {
-  if (typeof src !== 'string' || src === '' || !src.includes('/pic/')) return src
+export const CDN_OSS_MAGMA_PIC = <T>(src?: T): T | string => {
+  if (typeof src !== 'string' || src === '' || !src.includes('/pic/')) return src as T
 
   const pic = (src.split('.jpg')?.[0] || '').split('/pic/')?.[1] || ''
   if (!pic || !initCDN()) return src

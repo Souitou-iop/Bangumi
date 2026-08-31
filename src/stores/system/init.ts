@@ -2,16 +2,16 @@
  * @Author: czy0729
  * @Date: 2019-07-13 14:00:59
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-05 04:47:34
+ * @Last Modified time: 2026-08-28 01:11:07
  */
 import {
   IOS,
   MENU_MAP,
   MODEL_SETTING_CDN_ORIGIN,
+  MODEL_SETTING_HOME_ANIME_INFO_INLINE,
   MODEL_SETTING_HOME_COUNT_VIEW,
   MODEL_SETTING_HOME_GRID_COVER_LAYOUT,
   MODEL_SETTING_HOME_LAYOUT,
-  MODEL_SETTING_HOME_ANIME_INFO_INLINE,
   MODEL_SETTING_HOME_SORTING,
   MODEL_SETTING_INITIAL_PAGE,
   MODEL_SETTING_LIVE2D_MODEL,
@@ -27,8 +27,9 @@ import { IOS_IMAGE_CACHE_V2 } from '@src/config'
 import { radiusMd } from '@styles'
 
 import type { MUSUME_PROMPT } from '@utils/kv/ds'
-import type { EventKeys, MenuItem, Paths, SettingLive2DScale } from '@types'
+import type { MenuItem, Paths, SettingLive2DScale } from '@types'
 import type {
+  Advance,
   HomeRenderTabs,
   HomeTabs,
   LayoutValue,
@@ -518,8 +519,8 @@ export const STATE = {
   advance: false,
 
   /** 高级会员详情 */
-  advanceDetail: {
-    _loaded: 0
+  advanceDetail: {} as Record<string, Advance> & {
+    _loaded: number
   },
 
   /** 基本设置 */
@@ -557,8 +558,8 @@ export const STATE = {
   /** @deprecated 用于在 bangumi-oss ota hash 更新后, 强制刷新 APP 内所有封面 */
   hashSubjectOTALoaded: 0,
 
-  /** 内部统计, 用于确认某个功能是否第一次使用 */
-  t: {} as Record<EventKeys, number>
+  /** 内部统计, 用于确认某个功能是否第一次使用, 键为埋点 ID (如 'Anime.to') */
+  t: {} as Record<string, number>
 }
 
 export const LOADED = {

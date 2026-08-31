@@ -2,20 +2,27 @@
  * @Author: czy0729
  * @Date: 2022-05-28 02:06:44
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-06-06 00:18:59
+ * @Last Modified time: 2026-08-25 19:23:20
  */
 import { Image as RNImage } from 'react-native'
-import { _, systemStore } from '@stores'
-import { getCover400, getStorage, setStorage, showImageViewer } from '@utils'
+import { _ } from '@stores'
+import { ensureCacheLimit, getCover400, getStorage, setStorage, showImageViewer } from '@utils'
 import { t } from '@utils/fetch'
 import hash from '@utils/thirdParty/hash'
-import ImageCacheManager from '@utils/thirdParty/image-cache-manager'
+import ImageCacheManager, { scheduleCleanup } from '@utils/thirdParty/image-cache-manager'
 import { HOST_BGM_STATIC, HOST_CDN, HOST_IMAGE, IOS, WEB } from '@constants'
-import { getSkeletonColor } from '../skeleton'
-import { CACHE_KEY_404, CACHE_KEY_451, CACHE_KEY_TIMEOUT, OSS_BGM_EMOJI_PREFIX } from './ds'
+import { getSkeletonColor } from '../skeleton/utils'
+import {
+  CACHE_KEY_404,
+  CACHE_KEY_451,
+  CACHE_KEY_TIMEOUT,
+  DEFAULT_HEADERS,
+  MAGMA_PROBE_TIMEOUT,
+  OSS_BGM_EMOJI_PREFIX
+} from './ds'
 
-import type { AnyObject } from '@types'
-import type { Props, State } from './types'
+import type { EventType, ImageStyle, TimerRef, ViewStyle } from '@types'
+import type { ComputeImageStylesOptions, Props, State } from './types'
 
 /** 记录 451 (OSS 鉴定为敏感) 的图片 */
 let memo451: Map<string, boolean>
@@ -34,6 +41,9 @@ const memoLocal = new Map<
     size?: number
   }
 >()
+
+/** 内存级缓存上限, 防止长会话中随浏览图片数无限增长 */
+const MEMO_LOCAL_LIMIT = 500
 
 /** 初始化 */
 ;(async () => {
@@ -69,13 +79,13 @@ export function setError451(src: string) {
 }
 
 /** 检查 451 */
-export function checkError451(src: string): boolean {
+export function checkError451(src: Props['src']): boolean {
   if (!memo451 || typeof src !== 'string') return false
   return memo451.has(hash(src))
 }
 
 /** 记录 404 */
-export function setError404(src: string) {
+export function setError404(src: Props['src']) {
   if (!memo404 || typeof src !== 'string') return false
 
   const id = hash(src)
@@ -87,7 +97,7 @@ export function setError404(src: string) {
 }
 
 /** 检查 404 */
-export function checkError404(src: string): boolean {
+export function checkError404(src: Props['src']): boolean {
   if (!memo404 || typeof src !== 'string') return false
   return memo404.has(hash(src))
 }
@@ -110,18 +120,34 @@ export function checkErrorTimeout(src: Props['src']): boolean {
 }
 
 /** 本地是否已标记错误 */
-export function checkLocalError(src: any) {
+export function checkLocalError(src: Props['src']): boolean {
   return checkBgmEmoji(src) || checkError451(src) || checkError404(src)
 }
 
 /** 是否 bgm 未本地化表情 */
-export function checkBgmEmoji(src: string): boolean {
+export function checkBgmEmoji(src: Props['src']): boolean {
   if (typeof src !== 'string') return false
   return src.includes(OSS_BGM_EMOJI_PREFIX)
 }
 
+/** 计算请求头：lain 域名自动加 Referer */
+export function computeHeaders(
+  src: Props['src'],
+  headers?: Record<string, string>
+): Record<string, string> {
+  const isLain = typeof src === 'string' && src.includes('lain.')
+
+  if (headers) {
+    if (isLain) return { ...DEFAULT_HEADERS, ...(headers || {}) }
+    return { ...headers }
+  }
+
+  if (isLain) return DEFAULT_HEADERS
+  return {}
+}
+
 /** 开发调试样式 */
-export function getDevStyles(src: any, fallback: boolean = false, size: number) {
+export function getDevStyles(src: Props['src'], fallback: boolean = false, size: number) {
   if (typeof src !== 'string') return undefined
 
   if (fallback) {
@@ -153,12 +179,7 @@ export function getDevStyles(src: any, fallback: boolean = false, size: number) 
 }
 
 /** 计算自适应尺寸 */
-export function getAutoSize(
-  width: number,
-  height: number,
-  autoSize: number,
-  autoHeight: number
-) {
+export function getAutoSize(width: number, height: number, autoSize: number, autoHeight: number) {
   let w: number
   let h: number
 
@@ -180,7 +201,12 @@ export function getAutoSize(
 }
 
 /** 回滚 bgm 原始封面 */
-export function getRecoveryBgmCover(src: any, width: number, height: number, size: number) {
+export function getRecoveryBgmCover(
+  src: Props['src'],
+  width: number,
+  height: number,
+  size: number
+): Props['src'] {
   if (typeof src !== 'string') return src
 
   let path = src.split('/pic/')?.[1] || ''
@@ -201,7 +227,19 @@ export function getRecoveryBgmCover(src: any, width: number, height: number, siz
 }
 
 /** ImageViewer 回调 */
-export function imageViewerCallback({ imageViewerSrc, uri, src, headers, event }) {
+export function imageViewerCallback({
+  imageViewerSrc,
+  uri,
+  src,
+  headers,
+  event
+}: {
+  imageViewerSrc: Props['imageViewerSrc']
+  uri: State['uri']
+  src: Props['src']
+  headers: Record<string, string>
+  event?: EventType
+}) {
   return () => {
     let imageSrc = imageViewerSrc
     if (typeof imageSrc === 'string' && !imageSrc.startsWith('http')) imageSrc = undefined
@@ -209,8 +247,8 @@ export function imageViewerCallback({ imageViewerSrc, uri, src, headers, event }
     showImageViewer([
       {
         headers,
-        url: imageSrc || uri,
-        _url: imageSrc || src
+        url: (imageSrc || uri) as string,
+        _url: (imageSrc || src) as string
       }
     ])
 
@@ -222,7 +260,9 @@ export function imageViewerCallback({ imageViewerSrc, uri, src, headers, event }
 }
 
 /** 修复远程图片地址 */
-export function fixedRemoteImageUrl(url: any) {
+export function fixedRemoteImageUrl(url: string): string
+export function fixedRemoteImageUrl(url: Props['src']): Props['src']
+export function fixedRemoteImageUrl(url: Props['src']): Props['src'] {
   if (typeof url !== 'string' || url.startsWith('./')) return url
 
   if (!url.startsWith('http')) return `https:${url}`
@@ -247,7 +287,14 @@ export async function getLocalCache(src: string, headers?: Record<string, string
     ? await ImageCacheManager.get(src, { headers }).getPath()
     : { path: src, size: 0 }
 
-  if (result) memoLocal.set(id, result)
+  if (result) {
+    memoLocal.set(id, result)
+    ensureCacheLimit(memoLocal, MEMO_LOCAL_LIMIT)
+  }
+
+  // 首次实际使用文件缓存时, 顺带调度一次启动后的 LRU 清理
+  if (IOS) scheduleCleanup()
+
   return result
 }
 
@@ -257,25 +304,60 @@ export function getLocalCacheStatic(src: string) {
   return memoLocal.get(id)
 }
 
-/** 用于下载超时, 默认 10s */
-export function timeoutPromise() {
-  return new Promise((_resolve, reject) => {
-    setTimeout(() => {
+/** 本地文件已损坏或被系统清理时, 移除内存命中记录以便下次重新检查磁盘 */
+export function removeLocalCache(src: string) {
+  memoLocal.delete(hash(src))
+}
+
+/** 用于下载超时, 默认 10s, 竞速结束后调用 clear 取消底层定时器 */
+export function timeoutPromise(timeout: number = 10000) {
+  let timerId: TimerRef = null
+
+  const promise = new Promise((_resolve, reject) => {
+    timerId = setTimeout(() => {
       reject('download timed out')
-    }, 10000)
+    }, timeout)
   })
+
+  return {
+    promise,
+    /** 取消底层定时器, 避免 Promise.race 胜出后定时器仍触发 unhandled rejection */
+    clear: () => {
+      if (timerId) clearTimeout(timerId)
+      timerId = null
+    }
+  }
+}
+
+/** 指数退避重试间隔, 上限 1 小时 */
+export function getNextRetryDelay(attempt: number) {
+  return Math.min(3000 * Math.pow(2, attempt), 3600000)
+}
+
+/**
+ * 合并默认值, 仅当属性值为 undefined 时使用默认值
+ * 与 React defaultProps 语义一致; 不能用对象展开默认值代替,
+ * 上游可能显式传 undefined (如 Cover 的 size), 展开会覆盖默认值导致图片丢失宽高
+ */
+export function withDefaults<T extends object>(props: T, defaults: Partial<T>): T {
+  const result = { ...props } as unknown as Record<string, unknown>
+  const source = defaults as unknown as Record<string, unknown>
+
+  Object.keys(source).forEach(key => {
+    if (result[key] === undefined) {
+      result[key] = source[key]
+    }
+  })
+
+  return result as unknown as T
 }
 
 /** 计算图片实际样式 */
 export function computeImageStyles(
   props: Props,
   state: State,
-  borderRadius: number,
-  dev: boolean,
-  fallbacked: boolean,
-  _size: number,
-  styles: AnyObject
-) {
+  options: ComputeImageStylesOptions
+): { container: ViewStyle; image: ImageStyle } {
   const {
     style,
     imageStyle,
@@ -292,9 +374,11 @@ export function computeImageStyles(
     skeletonType,
     src
   } = props
+  const { borderRadius, dev, devEventText, fallbacked, fileSize, hairlineWidth, isDark, styles } =
+    options
   const { width: w, height: h, animFinished } = state
-  const container: any[] = []
-  const image: any[] = []
+  const container: ViewStyle[] = []
+  const image: ViewStyle[] = []
 
   // 以 state 里面的 width 和 height 优先
   if (autoSize) {
@@ -315,7 +399,7 @@ export function computeImageStyles(
   }
 
   // 若边框等于 hairlineWidth 且有影子就不显示边框
-  if (border && !(border === _.hairlineWidth && shadow)) {
+  if (border && !(border === hairlineWidth && shadow)) {
     image.push(
       typeof border === 'string'
         ? {
@@ -328,29 +412,20 @@ export function computeImageStyles(
 
   // 圆角
   if (radius) {
-    if (typeof radius === 'boolean') {
-      const s = {
-        borderRadius,
-        overflow: 'hidden'
-      }
-      container.push(s)
-      image.push(s)
-    } else {
-      const s = {
-        borderRadius: radius,
-        overflow: 'hidden'
-      }
-      container.push(s)
-      image.push(s)
-    }
+    const s = {
+      borderRadius: typeof radius === 'boolean' ? borderRadius : radius,
+      overflow: 'hidden'
+    } as const
+    container.push(s)
+    image.push(s)
   }
 
   /**
    * 以下特殊情况不显示阴影
-   * _.isDark 黑暗模式没必要显示阴影
-   * systemStore.devEvent 安卓下当有阴影, 层级会被提高, 导致遮挡卖点分析的可视化文字
+   * 暗色模式没必要显示阴影
+   * 安卓下当有阴影, 层级会被提高, 导致遮挡卖点分析的可视化文字
    */
-  if (shadow && !_.isDark && !(!IOS && systemStore.devEvent.text)) {
+  if (shadow && !isDark && !devEventText) {
     container.push(shadow === 'lg' ? styles.shadowLg : styles.shadow)
   }
 
@@ -372,12 +447,12 @@ export function computeImageStyles(
   }
 
   if (dev) {
-    image.push(getDevStyles(src, fallbacked, _size))
+    image.push(getDevStyles(src, fallbacked, fileSize))
   }
 
   return {
     container: _.flatten(container),
-    image: _.flatten(image)
+    image: _.flatten(image) as ImageStyle
   }
 }
 
@@ -391,17 +466,39 @@ export function clearErrorTimeout(src?: string): boolean {
   return true
 }
 
+/** 解析 magma CDN 探测错误码 */
+export function parseCdnProbeError(error: unknown): 451 | 404 | 0 {
+  const errorStr = String(error)
+  if (errorStr.includes('code=451')) return 451
+  if (errorStr.includes('code=404')) return 404
+  return 0
+}
+
 /** 探测 magma CDN 状态码, 决定回退还是重试 */
-export function probeMagmaCdn(src: string, headers: AnyObject, onStatus: (code: number) => void) {
+export function probeMagmaCdn(
+  src: string,
+  headers: Record<string, string>,
+  onStatus: (code: number) => void
+) {
   if (IOS) {
     const request = new XMLHttpRequest()
     request.withCredentials = false
 
-    request.onreadystatechange = function () {
-      if (this.readyState === 4) {
-        onStatus(this.status)
-      }
+    let settled = false
+    const done = (code: number) => {
+      if (settled) return
+      settled = true
+      onStatus(code)
     }
+
+    request.onreadystatechange = function () {
+      if (this.readyState === 4) done(this.status)
+    }
+    // CDN 挂起（如 VPN 下 NSFW 图被墙）时不再卡死, 标记超时
+    request.ontimeout = function () {
+      done(-1)
+    }
+    request.timeout = MAGMA_PROBE_TIMEOUT
 
     request.open('get', src, true)
     request.send(null)
@@ -410,15 +507,8 @@ export function probeMagmaCdn(src: string, headers: AnyObject, onStatus: (code: 
       src,
       headers,
       () => {},
-      (error: any) => {
-        const errorStr = String(error)
-        if (errorStr.includes('code=451')) {
-          onStatus(451)
-        } else if (errorStr.includes('code=404')) {
-          onStatus(404)
-        } else {
-          onStatus(0)
-        }
+      error => {
+        onStatus(parseCdnProbeError(error))
       }
     )
   }

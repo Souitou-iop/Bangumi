@@ -1,34 +1,35 @@
 /*
  * 本地化
  *  - 写入本地动作会有合并逻辑和时间间隔，目的是避免短时间过度写入
+ *
  * @Author: czy0729
  * @Date: 2022-04-13 04:14:20
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-06-18 06:26:28
+ * @Last Modified time: 2026-08-30 07:03:32
  */
 import pLimit from 'p-limit'
 import { getItem, setItem } from './utils'
 import { CACHE_MAP, LAZY_SET_STORAGE_INTERVAL, LAZY_SET_STORAGE_SIZE } from './ds'
 
-const DEV_LOG = false
+import type { TimerRef } from '@types'
 
-let setStorageInterval: any
+let setStorageInterval: TimerRef
 if (setStorageInterval) clearInterval(setStorageInterval)
 
 /** 读取数据 */
-export async function getStorage(key: string) {
+export async function getStorage<T = unknown>(key: string) {
   try {
     if (!key) return null
 
     const data = await getItem(key)
-    return JSON.parse(data)
+    return JSON.parse(data) as T | null
   } catch (error) {
     return null
   }
 }
 
 /** 保存数据到本地 (会对大于 LAZY_SET_STORAGE_SIZE 的操作进行延迟合并保存到本地) */
-export async function setStorage(key: string, data: any) {
+export async function setStorage(key: string, data: unknown) {
   if (!key) return
 
   const _data = JSON.stringify(data)
@@ -46,20 +47,13 @@ export async function setStorage(key: string, data: any) {
 setStorageInterval = setInterval(() => {
   if (!CACHE_MAP.size) return
 
-  const setItems = []
+  const setItems: (() => Promise<void>)[] = []
   CACHE_MAP.forEach((value, key) => {
     setItems.push(async () => {
       try {
         await setItem(key, value)
       } catch {}
       CACHE_MAP.delete(key)
-
-      if (DEV_LOG) {
-        const size = (String(value).length / 1000).toFixed(2)
-        if (Number(size) >= 100) {
-          // console.info('setStorageLazy', `${size}kb`.padEnd(10, ' '), key)
-        }
-      }
     })
   })
 

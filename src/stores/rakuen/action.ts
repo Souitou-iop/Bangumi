@@ -2,11 +2,10 @@
  * @Author: czy0729
  * @Date: 2023-04-24 14:31:09
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-06-03 00:06:20
+ * @Last Modified time: 2026-08-27 05:20:14
  */
 import { confirm, getTimestamp, info } from '@utils'
 import { syncSystemStore, syncUserStore } from '@utils/async'
-import { put, read } from '@utils/db'
 import { fetchHTML, xhr } from '@utils/fetch'
 import { collect, collectList, get, is, update } from '@utils/kv'
 import {
@@ -23,12 +22,14 @@ import Fetch from './fetch'
 
 import type { RakuenReplyType } from '@constants/html/types'
 import type {
+  BlogId,
   Fn,
   Id,
   RakuenAutoLoadImage,
   RakuenNewFloorStyle,
   RakuenScrollDirection,
   RakuenSubExpand,
+  SubjectId,
   TopicId,
   TopicType,
   UserId
@@ -131,9 +132,9 @@ export default class Action extends Fetch {
       type: number
       value: string
     },
-    floorId: number,
+    floorId: Id,
     formhash: string,
-    topicId: TopicId,
+    topicId: TopicId | BlogId | SubjectId,
     callback?: Fn,
     userInfo?: {
       username: string
@@ -226,7 +227,7 @@ export default class Action extends Fetch {
 
     xhr(
       {
-        url: API_TOPIC_COMMENT_LIKE(item.type, item.main_id, floorId, item.value, formhash)
+        url: API_TOPIC_COMMENT_LIKE(item.type, item.main_id, Number(floorId), item.value, formhash)
       },
       responseText => {
         try {
@@ -620,42 +621,6 @@ export default class Action extends Fetch {
     return false
   }
 
-  /** 上传收藏帖子到云端 */
-  uploadFavorTopic = () => {
-    const { id } = syncUserStore().userInfo
-    return put({
-      path: `topic/${id}.json`,
-      content: escape(JSON.stringify(this.favorTopic))
-    })
-  }
-
-  /** @deprecated 同步云端收藏帖子 */
-  downloadFavorTopic = async () => {
-    const { id } = syncUserStore().userInfo
-    const { content } = await read({
-      path: `topic/${id}.json`
-    })
-    if (!content) return false
-
-    try {
-      const { favor } = this.state
-      const { _favor, ...cloudTopic } = JSON.parse(unescape(content))
-      this.setState({
-        favor: {
-          ..._favor,
-          ...favor
-        },
-        cloudTopic
-      })
-
-      this.save('favor')
-      this.save('cloudTopic')
-      return true
-    } catch (error) {
-      return false
-    }
-  }
-
   /** 上传当前设置到云端 */
   uploadSetting = () => {
     const { id } = syncUserStore().userInfo
@@ -694,43 +659,6 @@ export default class Action extends Fetch {
         this.save(key)
         return true
       }
-    } catch {}
-
-    // 旧逻辑, 暂时保留
-    try {
-      const data = await read({
-        path: `rakuen-setting/${id}.json`
-      })
-      if (!data?.content) return false
-
-      const setting = JSON.parse(data.content)
-
-      // 屏蔽的数据还需要跟现在的合并
-      let { blockKeywords, blockGroups, blockUserIds } = setting
-      blockKeywords = JSON.parse(unescape(blockKeywords))
-      blockGroups = JSON.parse(unescape(blockGroups))
-      blockUserIds = JSON.parse(unescape(blockUserIds))
-      this.setting.blockKeywords.forEach(item => {
-        if (!blockKeywords.includes(item)) blockKeywords.push(item)
-      })
-      this.setting.blockGroups.forEach(item => {
-        if (!blockGroups.includes(item)) blockGroups.push(item)
-      })
-      this.setting.blockUserIds.forEach(item => {
-        if (!blockUserIds.includes(item)) blockUserIds.push(item)
-      })
-
-      this.setState({
-        [key]: {
-          ...this.setting,
-          // ...setting,
-          blockKeywords,
-          blockGroups,
-          blockUserIds
-        }
-      })
-      this.save(key)
-      return true
     } catch {}
 
     this.log('downloadSetting', 'downloadSetting error')

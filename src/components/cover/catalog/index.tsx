@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2023-06-20 12:22:59
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-03-18 04:45:03
+ * @Last Modified time: 2026-08-18 08:29:19
  */
 import React from 'react'
 import { View } from 'react-native'
@@ -14,6 +14,7 @@ import { Squircle } from '../../squircle'
 import { memoStyles } from './styles'
 
 import type { ViewStyle } from '@types'
+import type { Props } from './types'
 
 function Catalog({
   imageStyle,
@@ -25,7 +26,7 @@ function Catalog({
   width,
   height,
   ...other
-}) {
+}: Props) {
   const styles = memoStyles()
 
   const catalogSize = Math.min(size || 1000, width || 1000, height || 1000)

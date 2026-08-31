@@ -2,24 +2,26 @@
  * @Author: czy0729
  * @Date: 2023-12-14 12:12:51
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-12-19 21:18:33
+ * @Last Modified time: 2026-08-30 04:38:03
  */
 import { logger } from '../dev'
 
+const TAG = '@utils/kv'
+
 /** info */
-export function log(method: string, ...others: any[]) {
-  logger.info(`@utils/kv/${method}`, ...others)
+export function log(method: string, ...others: unknown[]) {
+  logger.info(TAG, method, ...others)
 }
 
 /** err */
-export function err(method: string, ...others: any[]) {
-  logger.error(`@utils/kv/${method}`, ...others)
+export function err(method: string, ...others: unknown[]) {
+  logger.error(TAG, method, ...others)
 }
 
 export function splitAndKeepPunctuation(str: string) {
   // 首先，使用正则表达式分割字符串，保留分隔符
   const parts = str.split(/(。|！|？)/)
-  const result = []
+  const result: string[] = []
 
   for (let i = 0; i < parts.length; i++) {
     // 如果是分隔符，将前一个元素和分隔符合并，然后添加到结果数组

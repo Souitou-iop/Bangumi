@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2023-06-20 10:03:28
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-03-18 04:45:42
+ * @Last Modified time: 2026-08-18 08:29:48
  */
 import React from 'react'
 import { observer } from 'mobx-react'
@@ -12,7 +12,9 @@ import { Flex } from '../../flex'
 import { Text } from '../../text'
 import { memoStyles } from './styles'
 
-function TextOnly({ width, height, radius, onPress }) {
+import type { Props } from './types'
+
+function TextOnly({ width, height, radius, onPress }: Props) {
   const styles = memoStyles()
 
   return (

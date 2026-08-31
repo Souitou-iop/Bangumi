@@ -2,9 +2,9 @@
  * @Author: czy0729
  * @Date: 2022-05-03 21:15:21
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-11-29 17:34:54
+ * @Last Modified time: 2026-08-24 02:53:28
  */
-import type { ColorValue, ImageProps } from 'react-native'
+import type { ColorValue, ImageErrorEvent, ImageProps } from 'react-native'
 import type { EventType, Fn, ImageSource, ImageStyle, Override, ViewStyle } from '@types'
 import type { SkeletonProps } from '../skeleton'
 
@@ -15,7 +15,7 @@ export type Props = Override<
     style?: ViewStyle
 
     /** 强制传递给图片的样式 */
-    imageStyle?: ImageStyle
+    imageStyle?: ImageStyle | ViewStyle | ViewStyle[]
 
     /** 图片地址 */
     src?: ImageSource | string
@@ -72,7 +72,7 @@ export type Props = Override<
     cache?: boolean
 
     /** 图片请求头 */
-    headers?: object
+    headers?: Record<string, string>
 
     /** 开发模式, 强制不显示图片 */
     textOnly?: boolean
@@ -102,7 +102,7 @@ export type Props = Override<
     onLongPress?: Fn
 
     /** 图片加载失败回调 */
-    onError?: Fn
+    onError?: (evt?: ImageErrorEvent) => void
   }
 >
 
@@ -124,4 +124,55 @@ export type State = {
 
   /** 图片加载完成且动画结束 (用于移除背景色防止安卓过度绘制) */
   animFinished: boolean
+}
+
+/** useImageAutoSize 参数 */
+export type UseImageAutoSizeOptions = {
+  /** 当前解析出的图片地址 */
+  uri: State['uri']
+
+  /** 初始图片地址 */
+  src?: Props['src']
+
+  /** 自动计算宽度 */
+  autoSize?: Props['autoSize']
+
+  /** 自动计算高度 */
+  autoHeight?: Props['autoHeight']
+
+  /** 请求头 */
+  headers: Record<string, string>
+
+  /** 宽高获取成功回调 */
+  onSize: (width: number, height: number) => void
+
+  /** 宽高获取失败回调 */
+  onError: (errorInfo?: string) => void
+}
+
+/** computeImageStyles 注入项, 由调用方传入可观察值保持函数纯净 */
+export type ComputeImageStylesOptions = {
+  /** 当前圆角值 */
+  borderRadius: number
+
+  /** 是否开发模式 */
+  dev: boolean
+
+  /** 是否已回退到 fallbackSrc */
+  fallbacked: boolean
+
+  /** 下载到本地的文件大小 (bytes) */
+  fileSize: number
+
+  /** memoStyles 生成的样式表 */
+  styles: Record<string, ViewStyle>
+
+  /** 是否暗色模式 */
+  isDark: boolean
+
+  /** hairline 边框宽度 */
+  hairlineWidth: number
+
+  /** 安卓 devEvent 可视化文字开启 (隐藏阴影避免遮挡) */
+  devEventText: boolean
 }

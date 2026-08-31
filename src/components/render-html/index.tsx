@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2019-04-29 19:54:57
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-04-02 06:20:24
+ * @Last Modified time: 2026-07-26 17:34:06
  */
 import React from 'react'
 import { observer } from 'mobx-react'
@@ -20,7 +20,8 @@ import { fixedBaseFontStyle, formatHtml, splitHtmlByEmoji } from './utils'
 import { COMPONENT, PAD_FONT_ZISE_INCREASE, REGS } from './ds'
 import { styles } from './styles'
 
-import type { Props as RenderHtmlProps } from './types'
+import type { GestureResponderEvent } from 'react-native'
+import type { Renderer, Props as RenderHtmlProps } from './types'
 export type { RenderHtmlProps }
 
 /**
@@ -47,6 +48,14 @@ export const RenderHtml = observer(
       katakanaResult: {}
     }
 
+    /** formatHtml / 分片 / 各片配置的结果缓存, deps 全等时直接复用 */
+    private formatMemo = {
+      deps: [] as unknown[],
+      htmlValue: '',
+      fragments: [] as string[],
+      configs: [] as ReturnType<RenderHtmlComponent['generateConfig']>[]
+    }
+
     async componentDidMount() {
       if (this.props.katakana && systemStore.setting.katakana) {
         const katakanaResult = await translateAll(this.props.html)
@@ -65,7 +74,7 @@ export const RenderHtml = observer(
       logger.error(COMPONENT, 'componentDidCatch', error)
     }
 
-    onLinkPress = (_evt: any, href: string) => {
+    onLinkPress = (_evt: GestureResponderEvent, href: string) => {
       const { onLinkPress } = this.props
       if (typeof onLinkPress === 'function') {
         onLinkPress(href)
@@ -92,11 +101,11 @@ export const RenderHtml = observer(
       const bigEmojiStyle = isHasBigEmoji
         ? { lineHeight: _[`fontSize${rakuenStore.setting.bigEmojiSize}`].lineHeight }
         : {}
-      const flattenedBaseStyle = _.flatten([
+      const flattenedBaseStyle: Record<string, string | number | undefined> = _.flatten([
         this.defaultBaseFontStyle,
         fixedBaseFontStyle(baseFontStyle),
         bigEmojiStyle
-      ])
+      ]) as Record<string, string | number | undefined>
 
       return {
         imagesMaxWidth: _.window.width,
@@ -124,7 +133,7 @@ export const RenderHtml = observer(
 
         // 渲染定义 tag 前回调
         renderers: {
-          img: (attrs: any, _children: any, _css: any, passProps: any) =>
+          img: (attrs, _children, _css, passProps) =>
             img({
               key: passProps.key,
               src: attrs.src || '',
@@ -133,7 +142,7 @@ export const RenderHtml = observer(
               show: this.props.autoShowImage,
               onImageFallback: this.props.onImageFallback
             }),
-          span: (attrs: any, children: any, _css: any, passProps: any) =>
+          span: (attrs, children, _css, passProps) =>
             span({
               key: passProps.key,
               style: attrs.style || '',
@@ -143,29 +152,29 @@ export const RenderHtml = observer(
               rawChildren: passProps.rawChildren,
               children
             }),
-          q: (_attrs: any, children: any, _css: any, passProps: any) =>
+          q: (_attrs, children, _css, passProps) =>
             q({
               key: passProps.key,
               children
             }),
-          blockquote: (_attrs: any, children: any, _css: any, passProps: any) =>
+          blockquote: (_attrs, children, _css, passProps) =>
             blockquote({
               key: passProps.key,
               children
             }),
-          ul: (_attrs: any, children: any, _css: any, passProps: any) =>
+          ul: (_attrs, children, _css, passProps) =>
             ul({
               key: passProps.key,
               children
             }),
-          li: (attrs: any, children: any, _css: any, passProps: any) =>
+          li: (attrs, children, _css, passProps) =>
             li({
               key: passProps.key,
               style: attrs.style || '',
               className: attrs.class || '',
               children
             }),
-          div: (attrs: any, children: any, _css: any, passProps: any) =>
+          div: (attrs, children, _css, passProps) =>
             div({
               key: passProps.key,
               attrs,
@@ -174,7 +183,7 @@ export const RenderHtml = observer(
               rawChildren: passProps.rawChildren
             }),
           a: matchLink
-            ? (attrs: any, children: any, _css: any, passProps: any) =>
+            ? (attrs, children, _css, passProps) =>
                 a({
                   key: passProps.key,
                   attrs,
@@ -186,7 +195,7 @@ export const RenderHtml = observer(
                   children
                 })
             : rendererA
-        }
+        } as Record<string, Renderer>
       }
     }
 
@@ -206,26 +215,54 @@ export const RenderHtml = observer(
         matchLink,
         splitLength,
         onLinkPress,
+        onImageFallback,
         ...other
       } = this.props
-      const htmlValue = formatHtml(
+
+      // 依赖值必须在缓存判断前无条件读取, 否则 mobx 追踪不到, 设置变化后不会重渲染
+      const bigEmojiSize = rakuenStore.setting.bigEmojiSize
+      const s2t = systemStore.setting.s2t
+      const flattenedBaseStyle = _.flatten([this.defaultBaseFontStyle, baseFontStyle])
+
+      const deps: unknown[] = [
         html,
-        _.flatten([this.defaultBaseFontStyle, baseFontStyle]),
         matchLink,
+        splitLength,
+        bigEmojiSize,
+        s2t,
+        JSON.stringify(flattenedBaseStyle),
+        linkStyle,
+        _.colorMain,
+        _.window.width,
+        autoShowImage,
+        onImageFallback,
+        imagesMaxWidth,
         katakanaResult
-      )
+      ]
+      const memo = this.formatMemo
+      const hit =
+        memo.deps.length === deps.length && memo.deps.every((dep, index) => dep === deps[index])
+
+      if (!hit) {
+        memo.deps = deps
+        memo.htmlValue = formatHtml(html, flattenedBaseStyle, matchLink, katakanaResult) || ''
+        memo.fragments = memo.htmlValue ? splitHtmlByEmoji(memo.htmlValue, splitLength) : []
+        memo.configs = memo.fragments.map(item => this.generateConfig(item))
+      }
+
+      const { htmlValue, fragments, configs } = memo
       if (!htmlValue) return null
 
       return (
         <ErrorBoundary style={style}>
           <Component id='component-render-html' style={style}>
-            {splitHtmlByEmoji(htmlValue, splitLength).map((item, index) => (
+            {fragments.map((item, index) => (
               <RNRenderHTML
                 key={String(index)}
                 containerStyle={styles.container}
                 html={item}
                 onLinkPress={this.onLinkPress}
-                {...this.generateConfig(item)}
+                {...configs[index]}
                 {...other}
               />
             ))}

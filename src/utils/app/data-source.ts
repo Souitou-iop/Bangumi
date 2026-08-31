@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2023-12-23 07:16:48
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-23 21:32:50
+ * @Last Modified time: 2026-08-30 05:17:59
  */
 import { isObservableArray } from 'mobx'
 import { DEV, FROZEN_ARRAY, FROZEN_OBJECT } from '@constants'
@@ -171,7 +171,7 @@ export function optimize(data: any, s = 60) {
   const diff = getTimestamp() - Number(data?._loaded || 0)
   const isPrevent = diff < s
   if (isPrevent) {
-    logger.warn('@utils/optimize', diff, s, Object.keys(data).slice(0, 5))
+    logger.warn('@utils/app', 'optimize', diff, s, Object.keys(data).slice(0, 5))
   }
 
   return isPrevent
@@ -571,7 +571,11 @@ export function matchBgmLink(url: string = ''):
 }
 
 /** 自动判断封面 CDN 地址 */
-export function matchCoverUrl(src: any, noDefault?: boolean, prefix?: string) {
+export function matchCoverUrl<T>(
+  src: T,
+  noDefault?: boolean,
+  prefix?: string
+): T | string | number {
   if (typeof src !== 'string') return src
 
   const { cdn, cdnOrigin } = getSetting()
@@ -582,9 +586,10 @@ export function matchCoverUrl(src: any, noDefault?: boolean, prefix?: string) {
 
   /** magma 高级会员图片源 */
   if (cdn && cdnOrigin === 'magma' && typeof src === 'string' && src.includes(HOST_IMAGE)) {
-    if (src.includes('/pic/crt/')) return CDN_OSS_MAGMA_MONO(src) || fallback
+    const _src: string = src
+    if (_src.includes('/pic/crt/')) return CDN_OSS_MAGMA_MONO(_src) || fallback
 
-    return CDN_OSS_MAGMA_POSTER(getCoverMedium(src), prefix) || fallback
+    return CDN_OSS_MAGMA_POSTER(getCoverMedium(_src), prefix) || fallback
   }
 
   /** @deprecated 旧免费 CDN 源头, 国内已全部失效 */
@@ -600,7 +605,8 @@ export function matchCoverUrl(src: any, noDefault?: boolean, prefix?: string) {
 }
 
 /** 获取中质量 bgm 图片 */
-export function getCoverMedium(src: any = '', mini: boolean = false) {
+export function getCoverMedium<T>(src?: T, mini?: boolean): T | string
+export function getCoverMedium(src: unknown = '', mini: boolean = false) {
   // 角色图片因为是对头部划图的, 不要处理
   // 用户图床也没有其他质量
   if (
@@ -645,7 +651,8 @@ export function getCoverSmall(
 }
 
 /** 获取高质量 bgm 图片 */
-export function getCoverLarge(src: any = '', size: 200 | 400 = 400) {
+export function getCoverLarge<T>(src?: T, size?: 200 | 400): T | string
+export function getCoverLarge(src: unknown = '', size: 200 | 400 = 400) {
   if (
     typeof src !== 'string' ||
     src === '' ||
@@ -698,29 +705,33 @@ export function getMonoCoverSmall(url: string): string {
 }
 
 /** 修复远程图片地址 */
-export function fixedRemoteImageUrl(url: any) {
+export function fixedRemoteImageUrl<T>(url: T): T
+export function fixedRemoteImageUrl(url: unknown) {
   if (typeof url !== 'string' || !url) return url
 
-  let value = url
+  let value: string = url.replace(/http:\/\//g, 'https://')
 
   // 协议
-  if (value.indexOf('https:') === -1 && value.indexOf('http:') === -1) {
+  if (!value.startsWith('https://')) {
     value = `https:${value}`
   }
 
-  // fixed: 2022-09-27, 去除 cf 无缘无故添加的前缀
-  // 类似 /cdn-cgi/mirage/xxx-xxx-1800/1280/(https://abc.com/123.jpg | img/smiles/tv/15.fig)
-  value = value.replace(/\/cdn-cgi\/mirage\/[^/]+\/\d+\//g, '/').replace('http://', 'https://')
-
   // 带有服务器 r/800 前缀的必须是 l 大小的图片
-  if (/\/r\/\d+\//.test(value)) value = value.replace(/\/(g|s|m|c)\//, '/l/')
+  if (/\/r\/\d+\//.test(value)) {
+    value = value.replace(/\/(g|s|m|c)\//, '/l/')
+  }
 
   return value
 }
 
-/** 获取颜色 type */
-export function getType(label: string, defaultType: string = 'plain') {
-  return TYPE_MAP[label] || defaultType
+/** TYPE_MAP 值联合 */
+export type TypeMapValue = (typeof TYPE_MAP)[keyof typeof TYPE_MAP]
+
+/** 获取颜色 type (未命中时返回默认 'plain') */
+export function getType<T extends string>(label: string, defaultType: T): TypeMapValue | T
+export function getType(label: string): TypeMapValue
+export function getType(label: string, defaultType?: string) {
+  return TYPE_MAP[label as keyof typeof TYPE_MAP] || defaultType || 'plain'
 }
 
 /** 获取评分中文 */
@@ -775,15 +786,15 @@ export function getCookie(cookies = '', name: string) {
  */
 export function unzipBangumiData(
   item: {
-    id?: any
-    s?: any
+    id?: Id
+    s?: Record<string, number>
     j?: string
     c?: string
     t?: string
   } = {}
 ) {
   const sites: {
-    site: 'bangumi' | 'bilibili' | 'qq' | 'iqiyi' | 'acfun' | 'youku'
+    site: (typeof SITE_MAP)[keyof typeof SITE_MAP] | 'bangumi'
     id: string
   }[] = [
     {
@@ -791,12 +802,12 @@ export function unzipBangumiData(
       id: String(item.id)
     }
   ]
-  Object.keys(item.s || {}).forEach(s =>
+  Object.keys(item.s || {}).forEach((s: string) => {
     sites.push({
-      site: SITE_MAP[s],
+      site: SITE_MAP[s as keyof typeof SITE_MAP],
       id: String(item.s[s])
     })
-  )
+  })
 
   return {
     title: item.j,

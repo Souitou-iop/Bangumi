@@ -11,6 +11,7 @@
   - Promise 永远挂起：缺少 reject/resolve 路径、错误时等待者未通知
   - 异常处理：`async executor` 反模式、空 catch 吞掉错误
   - 边界情况：switch 无 default、空值/undefined 未处理
+- **不要在测试文件里局部 mock `@utils/dev`**：jest.setup.js 已按 resolved 路径全局注册完整 mock（含全部导出与 logger 七个方法），相对路径导入同样生效；需要断言日志时直接 `import { logger } from '@utils/dev'` 后对 jest.fn 断言
 
 # cheerio HTML 解析测试规范
 
@@ -42,3 +43,15 @@ describe('函数名', () => {                    // 具体的值验证
 5. **内容含中文用 `toContain`**：`cHtml` 返回 HTML 实体编码后的字符串，精确匹配可考虑使用 `toContain` 配合部分内容
 6. **每类边缘场景一个 it**：Re: 前缀拆分、`/` 分隔符、`icon.jpg` 默认头像、`&amp;` HTML 实体等各自独立成 it
 7. **`[类型定义问题]` 标注类型与实际不符**：如果函数运行时返回值结构与 TS 类型定义不一致（如 label 项缺少 `name`/`avatar`/`userId` 但类型标记为 required），可在注释中用 `[类型定义问题]` 标注
+8. **`@utils` 在 jest 中被 jest.setup.js 虚拟 mock**：mock 只覆盖部分导出，若解析函数用到 `@utils` 中 mock 未提供的工具，需先在 jest.setup.js 补充对应实现（与真实实现保持一致），否则运行时会是 undefined
+9. **`cText` / `cEach` / `cPagination` 等解析工具直接复用真实实现**：为避免 mock 与生产代码分叉，jest.setup.js 的 `@utils` mock 通过 `require(__dirname + '/src/utils/html/parse')` 直接复用 `parse.ts` 中抽离的解析函数，不要重复实现
+
+# src/styles 测试规范
+
+参考 `src/styles/__tests__/`。**不要断言字面量**（改源码就要同步改测试，纯噪音），只测不变量/派生关系：亮暗配色成对、Raw 能从源色解析、工具类引用统一 token（`mt.sm.marginTop === sm`）、几何自洽（`wind === floor((width - contentWidth)/2)`）、`tabsHeaderHeight === headerHeight + tabsHeight`、`lineHeight === floor(fontSize * lineHeightRatio)`、默认导出 `_` 覆盖全部命名导出。
+
+注意点：
+
+- **layout/utils 需 mock 环境**：顶部 `jest.mock('@constants/device')` 补全 `PAD`/`RATIO`/`STORYBOOK_*` 等（全局 mock 只有 `WEB`），`expo-constants` 须带 `__esModule: true`；测 `IOS` 分支再 mock `@constants/constants`
+- **jest 不支持 `expect(a, msg)` 双参**，用 `expect(cond).toBe(true)`
+- **`@styles`（无子路径）不在 moduleNameMapper**，`index.test.ts` 用相对路径 `../index`
