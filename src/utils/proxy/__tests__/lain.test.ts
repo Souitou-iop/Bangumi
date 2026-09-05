@@ -2,11 +2,11 @@
  * @Author: czy0729
  * @Date: 2026-08-25 10:00:00
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-25 10:00:00
+ * @Last Modified time: 2026-09-03 23:31:19
  */
 import { syncSystemStore } from '@utils/async'
 import { API_HOST } from '@constants/api'
-import { hmacSHA256 } from '../../crypto'
+import { hmacSHA256 } from '../../thirdParty/crypto'
 import { applyLainProxy } from '../lain'
 import { clearWorkerLogs, getWorkerLogs } from '../worker-log'
 
@@ -14,12 +14,12 @@ jest.mock('@utils/async', () => ({
   syncSystemStore: jest.fn()
 }))
 
-jest.mock('@constants/constants', () => ({
+jest.mock('@constants/host', () => ({
   HOST: 'https://bgm.tv',
   HOST_IMAGE: '//lain.bgm.tv'
 }))
 
-jest.mock('@utils/crypto', () => ({
+jest.mock('@utils/thirdParty/crypto', () => ({
   // constants/cdn/ds.ts 以命名导入使用 get
   get: (value: string) => value,
   default: { get: (value: string) => value },

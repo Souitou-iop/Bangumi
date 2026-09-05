@@ -2,11 +2,10 @@
  * @Author: czy0729
  * @Date: 2023-04-22 16:38:32
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-30 05:34:42
+ * @Last Modified time: 2026-09-05 04:43:28
  */
 import { toJS } from 'mobx'
-import cheerio from 'cheerio-without-node-native'
-import { getTimestamp, info, loading, urlStringify } from '@utils'
+import { getFormhash, getTimestamp, info, loading, urlStringify } from '@utils'
 import fetch, { xhr } from '@utils/fetch'
 import { fetchCollectionSingleV0 } from '@utils/fetch.v0'
 import { axiosWithProxy, axiosWithProxyRedirect } from '@utils/proxy'
@@ -32,7 +31,7 @@ import Fetch from './fetch'
 import { INIT_ACCESS_TOKEN, INIT_USER_COOKIE, INIT_USER_INFO } from './init'
 
 import type { ProxyAxiosResponse } from '@utils/proxy/types'
-import type { EpId, EpStatus, Fn, SubjectId } from '@types'
+import type { EpId, EpStatus, SubjectId } from '@types'
 import type { STATE } from './init'
 import type { AccessToken } from './types'
 
@@ -218,7 +217,7 @@ export default class Action extends Fetch {
       formhash: string
     },
     success?: (responseText?: string, request?: XMLHttpRequest) => unknown,
-    fail?: Fn
+    fail?: () => void
   ) => {
     const { subjectId, formhash } = config || {}
 
@@ -242,7 +241,7 @@ export default class Action extends Fetch {
       submit?: '发送' | '回复'
     },
     success?: (responseText?: string, request?: XMLHttpRequest) => unknown,
-    fail?: Fn
+    fail?: () => void
   ) => {
     return xhr(
       {
@@ -265,7 +264,7 @@ export default class Action extends Fetch {
       show_nsfw_subject: boolean | number
     },
     success?: (responseText?: string, request?: XMLHttpRequest) => unknown,
-    fail?: Fn
+    fail?: () => void
   ) => {
     return xhr(
       {
@@ -306,9 +305,7 @@ export default class Action extends Fetch {
         },
         true
       )
-      const formhash = cheerio
-        .load(data || '')('input[name=formhash]')
-        .attr('value')
+      const formhash = getFormhash(data)
       return await this.authorize(formhash)
     } catch (error) {
       // 失败必须隐藏授权 loading, 否则它会永远挂在界面上 (原本只在成功路径隐藏)

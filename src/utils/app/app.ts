@@ -2,12 +2,14 @@
  * @Author: czy0729
  * @Date: 2023-12-23 07:19:18
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-26 12:14:55
+ * @Last Modified time: 2026-09-03 23:26:43
  */
 import { Alert, BackHandler } from 'react-native'
 import { ON_AIR } from '@stores/calendar/onair'
-import { EVENT, HOST, IOS, URL_PRIVACY } from '@constants/constants'
+import { EVENT } from '@constants/data'
 import { WEB } from '@constants/device'
+import { IOS } from '@constants/env'
+import { HOST, URL_PRIVACY } from '@constants/host'
 import { FROZEN_FN } from '@constants/init'
 import { GROUP_THUMB_MAP } from '@assets/images'
 import { DEV } from '@src/config'
@@ -19,7 +21,7 @@ import { open } from '../utils'
 import { fixedBgmUrl, matchBgmLink } from './data-source'
 import { PRIVACY_STATE, RANDOM_FACTOR } from './ds'
 
-import type { AnyObject, EventType, Navigation, SubjectId } from '@types'
+import type { EventType, Navigation, SubjectId } from '@types'
 
 /** 初始化全局方法和控制台重写 */
 export function bootApp() {
@@ -139,7 +141,7 @@ export function navigationReference(navigation?: Navigation | undefined) {
 }
 
 /** keyExtractor */
-export function keyExtractor(item: AnyObject = { id: '' }) {
+export function keyExtractor(item: any = { id: '' }) {
   return String(item.id)
 }
 
@@ -174,7 +176,7 @@ export function getOnAirItem(subjectId: SubjectId): {
 export function appNavigate(
   url: string = '',
   navigation?: Navigation,
-  passParams: AnyObject = {},
+  passParams: Record<string, any> = {},
   event: EventType = EVENT,
   openWebBrowser: boolean = true
 ): boolean {
@@ -260,7 +262,7 @@ export function formatTime(time: string | number | Date) {
  * @param ico.Users - 备用用户数字段(兼容不同命名)
  * @returns ICO 等级信息对象
  */
-export function caculateICO(ico: { users?: number; total?: number; Users?: number }) {
+export function calculateICO(ico: { users?: number; total?: number; Users?: number }) {
   // 初始化基础值
   let level = 0
 
@@ -312,7 +314,7 @@ export function calculateFutureICO(
   step: number = 1
 ) {
   // 计算当前等级
-  const current = caculateICO(ico)
+  const current = calculateICO(ico)
 
   // 模拟升级到目标等级
   const targetLevel = current.level + step

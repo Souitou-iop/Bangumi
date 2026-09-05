@@ -2,14 +2,17 @@
  * @Author: czy0729
  * @Date: 2025-02-02 21:54:01
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-26 05:53:46
+ * @Last Modified time: 2026-09-03 05:50:32
  */
-import type { Fn, WithViewStyles } from '@types'
+import type { WithViewStyles } from '@types'
 
-export type MaskProps = WithViewStyles<{
+/** 遮罩渐变色 [顶, 中, 底] */
+export type MaskColors = readonly [string, string, string]
+
+export type Props = WithViewStyles<{
   /** 是否使用线性渐变遮罩 */
   linear?: boolean
 
   /** 点击遮罩回调 */
-  onPress: Fn
+  onPress: () => void
 }>

@@ -4,8 +4,8 @@
  * @Last Modified by: czy0729
  * @Last Modified time: 2026-08-30 21:45:36
  */
-import { get } from '@utils/protobuf'
 import { getJSON } from '@assets/json'
+import { get } from './protobuf'
 
 import type { SubjectId } from '@types'
 
@@ -30,7 +30,8 @@ let jaDataKeys: string[] = []
 export function findJA(input: string) {
   if (memo.has(input)) return memo.get(input)
 
-  const jaData: Record<string, SubjectId> = get('ja')
+  // 桶解码失败/未完成时 get 返回 undefined, 兜底空字典避免后续取下标崩溃
+  const jaData: Record<string, SubjectId> = get('ja') || {}
   const jaDataAddon: Record<string, SubjectId> = getJSON('thirdParty/ja.addon')
 
   const input1 = cleaned(input)

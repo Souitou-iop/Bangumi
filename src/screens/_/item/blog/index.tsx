@@ -2,21 +2,23 @@
  * @Author: czy0729
  * @Date: 2020-03-22 15:37:07
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-04-30 05:09:51
+ * @Last Modified time: 2026-08-31 22:02:22
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View } from 'react-native'
 import { observer } from 'mobx-react'
 import { Component, Cover, Flex, Link, Text } from '@components'
 import { _, discoveryStore } from '@stores'
-import { HTMLDecode, stl } from '@utils'
+import { HTMLDecode, shortTime, stl } from '@utils'
 import { r } from '@utils/dev'
 import { EVENT } from '@constants'
 import { Tag } from '../../base'
 import { InView } from '../../base/in-view'
 import BtnPopover from './btn-popover'
-import { COMPONENT, IMG_HEIGHT, IMG_WIDTH, ITEM_HEIGHT } from './ds'
+import { COMPONENT, IMG_HEIGHT, IMG_WIDTH, ITEM_BLOG_HEIGHT } from './ds'
 import { memoStyles } from './styles'
+
+export { ITEM_BLOG_HEIGHT }
 
 import type { Props as ItemBlogProps } from './types'
 export type { ItemBlogProps }
@@ -42,6 +44,10 @@ export const ItemBlog = observer(
     r(COMPONENT)
 
     const styles = memoStyles()
+
+    // decode 较贵, 只依赖原始文本
+    const titleText = useMemo(() => HTMLDecode(title), [title])
+    const contentText = useMemo(() => HTMLDecode(content).replace(/[ \u3000]+/g, ' '), [content])
 
     const linkProps = {
       path: 'Blog',
@@ -77,7 +83,7 @@ export const ItemBlog = observer(
         <View style={stl(styles.item, style)}>
           <Flex style={stl(styles.main, isReaded && styles.readed)} align='start'>
             {hasCover && (
-              <InView style={styles.inView} y={ITEM_HEIGHT * (index + 1)}>
+              <InView style={styles.inView} y={InView.y(index, ITEM_BLOG_HEIGHT)}>
                 <Link {...linkProps}>
                   <Cover
                     src={cover}
@@ -95,7 +101,7 @@ export const ItemBlog = observer(
                 <Flex.Item>
                   <Link {...linkProps}>
                     <Text lineHeight={15} numberOfLines={2} bold>
-                      {HTMLDecode(title)}
+                      {titleText}
                       {!!replies && replies !== '0 回复' && (
                         <Text type='main' size={11} lineHeight={15} bold>
                           {'  '}
@@ -110,7 +116,7 @@ export const ItemBlog = observer(
 
               <Link {...linkProps}>
                 <Text style={styles.content} size={13} lineHeight={15} numberOfLines={4}>
-                  {HTMLDecode(content).replace(/[ \u3000]+/g, ' ')}
+                  {contentText}
                 </Text>
               </Link>
 
@@ -147,7 +153,7 @@ export const ItemBlog = observer(
                       <Text {...subTextProps}> · </Text>
                     </>
                   )}
-                  <Text {...subTextProps}>{time.includes('前') ? time : time.slice(2)}</Text>
+                  <Text {...subTextProps}>{shortTime(time)}</Text>
 
                   {!!tags.length &&
                     (typeof tags === 'string' ? (

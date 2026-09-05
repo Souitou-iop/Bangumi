@@ -2,21 +2,21 @@
  * @Author: czy0729
  * @Date: 2022-09-07 00:56:03
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-02-01 10:14:50
+ * @Last Modified time: 2026-09-04 19:16:51
  */
 import { useCallback, useState } from 'react'
-import dayjs from 'dayjs'
 import { _, usersStore } from '@stores'
 import { queue, toFixed } from '@utils'
 import { logger } from '@utils/dev'
 import { update } from '@utils/kv'
+import dayjs from '@utils/thirdParty/dayjs'
 import treemap from '@utils/thirdParty/treemap'
 import { DEV, IOS } from '@constants'
 import advanceJSON from '@assets/json/advance.json'
 import { HEADER_HEIGHT } from '@styles'
 import { FILTER_RATE, LIST } from './ds'
 
-import type { AnyObject, UserId } from '@types'
+import type { UserId } from '@types'
 
 export function timeDiff() {
   const start = dayjs('2019-03-30')
@@ -94,7 +94,7 @@ export function useTreemapSquarify() {
 
   const filterUserIdsSet = new Set(filterUserIds)
   let list = LIST.filter(item => !filterUserIdsSet.has(item.data))
-  const total = caculateTotal(list)
+  const total = calculateTotal(list)
 
   /** 过滤的个数 */
   let filterCount = 0
@@ -112,7 +112,7 @@ export function useTreemapSquarify() {
     return true
   })
 
-  const currentTotal = caculateTotal(list)
+  const currentTotal = calculateTotal(list)
   const nodes = list.map(item => ({
     data: item.data,
     weight: item.weight,
@@ -133,7 +133,7 @@ export function useTreemapSquarify() {
         },
         nodes
       },
-      (x: number, y: number, w: number, h: number, node: AnyObject) =>
+      (x: number, y: number, w: number, h: number, node: Record<string, any>) =>
         data.push({
           data: node.data,
           price: node.price,
@@ -157,7 +157,7 @@ export function useTreemapSquarify() {
   }
 }
 
-function caculateTotal(nodes: any[]) {
+function calculateTotal(nodes: any[]) {
   let total = 0
   nodes.forEach(item => (total += item.weight || 0))
   return total

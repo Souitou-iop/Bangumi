@@ -4,12 +4,15 @@
  * @Last Modified by: czy0729
  * @Last Modified time: 2024-10-04 16:59:37
  */
-import { get } from '@utils/crypto'
+import { get } from '@utils/thirdParty/crypto'
 
 /** DogeCloud */
 export const HOST_DOGE = get(
   'U2FsdGVkX1+2qULvXezwI6fbFGIL7st4kYo0Q2RAf8JEKUaEyfYwKrhjaJ6FHS3ErIS9X8w8Oq1O88AEI37otA=='
 ) as string
+
+/** DogeCloud 默认图 */
+export const DOGE_CDN_IMG_DEFAULT = `${HOST_DOGE}/assets/default.png`
 
 /** DogeCloud */
 export const HOST_CDN_AVATAR = get(

@@ -2,20 +2,20 @@
  * @Author: czy0729
  * @Date: 2023-04-23 14:27:19
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-25 05:44:23
+ * @Last Modified time: 2026-09-03 23:25:41
  */
 import { Appearance, StatusBar, StyleSheet } from 'react-native'
 import { androidDayNightToggle, feedback, info } from '@utils/ui'
 import { runAfter } from '@utils/utils'
-import { IOS } from '@constants/constants'
 import { WEB, WSA } from '@constants/device'
+import { IOS } from '@constants/env'
 import _, { IS_IOS_5_6_7_8 } from '@styles'
 import systemStore from '../system'
 import Computed from './computed'
 import { STYLES_DARK, STYLES_LIGHT } from './init'
 import { getMemoStyles } from './utils'
 
-import type { AnyObject, SelectFn, SettingFontsizeAdjust, SettingLetterSpacing } from '@types'
+import type { SelectFn, SettingFontsizeAdjust, SettingLetterSpacing } from '@types'
 import type { Mode, Orientation, Styles, TinygrailMode } from './types'
 
 export default class Action extends Computed {
@@ -150,7 +150,7 @@ export default class Action extends Computed {
 
   /** 主动更新 window layout */
   updateLayout() {
-    const state: AnyObject = {
+    const state: Record<string, any> = {
       ..._.getAppLayout()
     }
     if (WSA) state.wsaLayoutChanged = this.wsaLayoutChanged + 1

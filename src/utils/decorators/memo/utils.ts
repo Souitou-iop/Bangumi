@@ -2,21 +2,32 @@
  * @Author: czy0729
  * @Date: 2021-08-09 01:49:10
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-30 04:36:32
+ * @Last Modified time: 2026-09-02 01:21:45
  */
-import isEqual from 'lodash.isequal'
+import { deepEqual } from '@utils/thirdParty/compare'
 import { logger } from '@utils/dev'
-import { WEB } from '@constants'
-
-import type { AnyObject } from '@types'
 
 const TAG = '@utils/decorators/memo'
 
 /** 封装通用 React.memo 的第二参数, 注意返回 true 代表不更新, false 代表强制更新 */
-export function memoCompare<P extends AnyObject>(
+export function memoCompare<P extends object>(
   prevProps: P | boolean,
   nextProps: P | boolean,
-  propsOrKeys: P | keyof P,
+  propsOrKeys: readonly (keyof P)[],
+  dev?: boolean,
+  devRerenderKey?: string
+): boolean
+export function memoCompare<P extends object>(
+  prevProps: P | boolean,
+  nextProps: P | boolean,
+  propsOrKeys: P,
+  dev?: boolean,
+  devRerenderKey?: string
+): boolean
+export function memoCompare<P extends object>(
+  prevProps: P | boolean,
+  nextProps: P | boolean,
+  propsOrKeys: P | readonly (keyof P)[],
   dev?: boolean,
   devRerenderKey?: string
 ) {
@@ -28,27 +39,27 @@ export function memoCompare<P extends AnyObject>(
   const checkEqualPrevProps = (propsOrKeys ? {} : prevProps) as P
   const checkEqualNextProps = (propsOrKeys ? {} : nextProps) as P
   if (propsOrKeys) {
-    const checkEqualKeys: (keyof P)[] = Array.isArray(propsOrKeys)
+    const checkEqualKeys: readonly (keyof P)[] = Array.isArray(propsOrKeys)
       ? propsOrKeys
-      : Object.keys(propsOrKeys)
+      : (Object.keys(propsOrKeys) as (keyof P)[])
     checkEqualKeys.forEach(key => {
       mapKey(checkEqualPrevProps, key, prevProps[key])
       mapKey(checkEqualNextProps, key, nextProps[key])
     })
   }
 
-  const notUpdate = isEqualEnv(checkEqualPrevProps, checkEqualNextProps)
+  const notUpdate = deepEqual(checkEqualPrevProps, checkEqualNextProps)
   if (dev && !notUpdate) log(checkEqualPrevProps, checkEqualNextProps, devRerenderKey)
 
   return notUpdate
 }
 
 /** 对比先后 props, 并打印是为什么更新了 */
-function log<P extends AnyObject>(prev: P, next: P, devRerenderKey?: string) {
-  const unsameKeys = []
+function log<P extends object>(prev: P, next: P, devRerenderKey?: string) {
+  const unsameKeys: string[] = []
   Object.keys(prev).forEach(key => {
     if (typeof prev[key] === 'object') {
-      if (isEqual(prev[key], next[key])) return
+      if (deepEqual(prev[key], next[key])) return
     } else if (prev[key] === next[key]) return
 
     unsameKeys.push(key)
@@ -92,7 +103,7 @@ function log<P extends AnyObject>(prev: P, next: P, devRerenderKey?: string) {
  *  - React.useRef
  *  - 第一层 object._loaded
  * */
-function mapKey<P extends AnyObject>(target: P, key: keyof P, value: P[keyof P]): void {
+function mapKey<P extends object>(target: P, key: keyof P, value: P[keyof P]): void {
   if (
     key === 'navigation' ||
     key === '_loaded' ||
@@ -113,17 +124,4 @@ function mapKey<P extends AnyObject>(target: P, key: keyof P, value: P[keyof P])
   }
 
   target[key] = value
-}
-
-/** 对象值是否完全相同 */
-function isEqualEnv<P extends AnyObject>(prevProps: P, nextProps: P): boolean {
-  try {
-    return WEB
-      ? isEqual(prevProps, nextProps)
-      : /** @todo RN 环境中暂不明其他库里面的 isEqual 误判 */
-        JSON.stringify(prevProps) === JSON.stringify(nextProps)
-  } catch (error) {
-    /** 若出错暂时返回需要重渲染, 以防不显示渲染组件 */
-    return false
-  }
 }

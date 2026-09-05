@@ -2,9 +2,8 @@
  * @Author: czy0729
  * @Date: 2024-12-29 11:16:17
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-05-30 06:40:25
+ * @Last Modified time: 2026-09-05 04:43:08
  */
-import cheerio from 'cheerio-without-node-native'
 import { systemStore, tinygrailStore } from '@stores'
 import {
   alert,
@@ -12,6 +11,7 @@ import {
   date,
   feedback,
   formatNumber,
+  getFormhash,
   getTimestamp,
   info,
   toFixed,
@@ -45,7 +45,7 @@ export default class Action extends Fetch {
   /** 刷新资产数据 */
   refresh = async () => {
     const results = await Promise.all([tinygrailStore.fetchAssets(), this.fetchCharaAssets()])
-    this.caculateChange()
+    this.calculateChange()
 
     setTimeout(() => {
       this.fetchCount()
@@ -212,7 +212,7 @@ export default class Action extends Fetch {
       if (State === 0) {
         info(Value)
         await tinygrailStore.fetchAssets()
-        this.caculateChange()
+        this.calculateChange()
       } else {
         info(Message)
       }
@@ -246,7 +246,7 @@ export default class Action extends Fetch {
       if (State === 0) {
         info(Value)
         await tinygrailStore.fetchAssets()
-        this.caculateChange()
+        this.calculateChange()
       } else {
         info(Message)
       }
@@ -280,7 +280,7 @@ export default class Action extends Fetch {
       if (State === 0) {
         info(Value)
         await tinygrailStore.fetchAssets()
-        this.caculateChange()
+        this.calculateChange()
       } else {
         info(Message)
       }
@@ -303,7 +303,7 @@ export default class Action extends Fetch {
         if (State === 0) {
           info(Value)
           await tinygrailStore.fetchAssets()
-          this.caculateChange()
+          this.calculateChange()
         } else {
           info(Message)
         }
@@ -338,7 +338,7 @@ export default class Action extends Fetch {
     )
     const { request } = data
     const { _response } = request
-    this._formhash = cheerio.load(_response)('input[name=formhash]').attr('value')
+    this._formhash = getFormhash(_response)
 
     return data
   }
@@ -396,7 +396,7 @@ export default class Action extends Fetch {
   }
 
   /** 资产金额 UI 变动 */
-  caculateChange = () => {
+  calculateChange = () => {
     const { currentBalance, currentTotal } = this.state
     const { balance } = this.assets
 
