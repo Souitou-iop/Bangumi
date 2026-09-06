@@ -1,0 +1,41 @@
+diff --git a/node_modules/@sdcx/nested-scroll/ios/NestedScrollView/RNNestedScrollView.m b/node_modules/@sdcx/nested-scroll/ios/NestedScrollView/RNNestedScrollView.m
+index 810daf6..cb8db9a 100644
+--- a/node_modules/@sdcx/nested-scroll/ios/NestedScrollView/RNNestedScrollView.m
++++ b/node_modules/@sdcx/nested-scroll/ios/NestedScrollView/RNNestedScrollView.m
+@@ -4,7 +4,9 @@
+ 
+ #import <React/UIView+React.h>
+ #import <React/RCTUIManager.h>
++#if __has_include(<React/RCTRootContentView.h>) && !defined(RCT_REMOVE_LEGACY_ARCH)
+ #import <React/RCTRootContentView.h>
++#endif
+ #import <React/RCTTouchHandler.h>
+ #import <React/RCTLog.h>
+ 
+@@ -32,7 +34,7 @@ @interface RNMainScrollView : UIScrollView <UIGestureRecognizerDelegate>
+ @end
+ 
+ @implementation RNMainScrollView {
+-    __weak RCTRootContentView *_rootView;
++    __weak UIView *_rootView;
+ }
+ 
+ - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+@@ -108,8 +110,15 @@ - (void)cacheRootView {
+ }
+ 
+ - (void)cancelRootViewTouches {
+-    RCTRootContentView *rootView = (RCTRootContentView *)_rootView;
+-    [rootView.touchHandler cancel];
++    if ([_rootView respondsToSelector:@selector(touchHandler)]) {
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
++        id touchHandler = [_rootView performSelector:@selector(touchHandler)];
++        if ([touchHandler respondsToSelector:@selector(cancel)]) {
++            [touchHandler performSelector:@selector(cancel)];
++        }
++#pragma clang diagnostic pop
++    }
+ }
+ 
+ - (BOOL)isHorizontal:(UIScrollView *)scrollView {

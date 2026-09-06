@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license          = package['license']
   s.author           = 'Bangumi'
   s.homepage         = 'https://github.com/czy0729/Bangumi'
-  s.platforms        = { :ios => '15.1' }
+  s.platforms        = { :ios => '16.4' }
   s.source           = { :git => 'https://github.com/czy0729/Bangumi.git' }
   s.static_framework = true
 

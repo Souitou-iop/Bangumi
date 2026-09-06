@@ -1,16 +1,16 @@
-import Expo
+internal import Expo
 import React
 import ReactAppDependencyProvider
 
 @main
-public class AppDelegate: ExpoAppDelegate {
-  public var window: UIWindow?
+class AppDelegate: ExpoAppDelegate {
+  var window: UIWindow?
 
   var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
   var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
 
-  public override func application(
+  override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
@@ -28,12 +28,11 @@ public class AppDelegate: ExpoAppDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
     self.launchOptions = launchOptions
-    bindReactNativeFactory(factory)
-
+    
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  public override func application(
+  override func application(
     _ app: UIApplication,
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
@@ -43,7 +42,7 @@ public class AppDelegate: ExpoAppDelegate {
     return expoHandled || reactHandled
   }
 
-  public override func application(
+  override func application(
     _ application: UIApplication,
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([any UIUserActivityRestoring]?) -> Void
@@ -61,21 +60,21 @@ public class AppDelegate: ExpoAppDelegate {
     return expoHandled || reactHandled
   }
 
-  public override func application(
+  override func application(
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
     super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
   }
 
-  public override func application(
+  override func application(
     _ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
     super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
   }
 
-  public override func application(
+  override func application(
     _ application: UIApplication,
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
