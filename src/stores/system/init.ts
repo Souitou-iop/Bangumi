@@ -23,7 +23,6 @@ import {
   VERSION_GITHUB_RELEASE,
   WEB
 } from '@constants'
-import { IOS_IMAGE_CACHE_V2 } from '@src/config'
 import { radiusMd } from '@styles'
 
 import type { MUSUME_PROMPT } from '@utils/kv/ds'
@@ -240,7 +239,7 @@ export const INIT_SETTING = {
   bottomTabLazy: true,
 
   /** 是否使用 iOS 系统原生底栏 */
-  nativeBottomTabs: false,
+  nativeBottomTabs: true,
 
   /** 切页动画 */
   transition: MODEL_SETTING_TRANSITION.getValue('水平'),
@@ -388,9 +387,6 @@ export const INIT_SETTING = {
 
   /** 若有自定义跳转隐藏通用源头按钮 */
   focusAction: false,
-
-  /** 图片是否开启新本地缓存策略 (iOS) */
-  iosImageCacheV2: IOS_IMAGE_CACHE_V2,
 
   /** 图片加载骨架屏动画 */
   imageSkeleton: true,
