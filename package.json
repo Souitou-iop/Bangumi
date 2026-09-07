@@ -1,6 +1,6 @@
 {
   "name": "bangumi",
-  "version": "8.39.3",
+  "version": "8.39.4",
   "main": "index.js",
   "private": true,
   "scripts": {
