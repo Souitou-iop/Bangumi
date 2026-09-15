@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2022-05-28 07:50:54
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-10-25 12:27:57
+ * @Last Modified time: 2026-09-11 23:43:41
  */
 import type { TouchableWithoutFeedbackProps } from 'react-native'
 import type { Override } from '@types'
@@ -35,19 +35,18 @@ export type Props = Override<
     delayPressOut?: number
 
     /**
-     * @deprecated iOS 端此值无变化
-     * 安卓端 Touchable 都使用了 react-native-gesture-handler 提供的封装
-     * 有比 RN 提供的更快的反馈效果，若设置为 true 强制使用 RN 提供的 Touchable
+     * 安卓端默认走轻量底座 (按下用 setValue 命令式变暗, 抬手用原生驱动恢复),
+     * 设置为 true 强制使用 RN 原生 Touchable, 用于真机对照与回退
      */
     useRN?: boolean
 
     /** 涟漪状的背景（安卓 only）*/
     ripple?: boolean
 
-    /** 是否使用缩放动画 */
+    /** @deprecated 是否使用缩放动画 */
     animate?: boolean
 
-    /** 点击中动画缩放比例, 默认 0.95 */
+    /** @deprecated  点击中动画缩放比例, 默认 0.95 */
     scale?: number
 
     /** 覆写 onPress */

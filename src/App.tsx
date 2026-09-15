@@ -2,13 +2,13 @@
  * @Author: czy0729
  * @Date: 2019-03-30 19:25:19
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-25 20:05:18
+ * @Last Modified time: 2026-09-09 15:54:33
  */
-import React, { Suspense } from 'react'
+import { Suspense } from 'react'
 import { LogBox, StatusBar } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { enableScreens } from 'react-native-screens'
+import { observer } from 'mobx-react'
 // 入口直连子模块, 避免 @components / @utils / @constants barrel 被启动链全量求值
 import { DeepLink } from '@components/deep-link'
 import { HoldMenuProvider } from '@components/hold-menu'
@@ -22,8 +22,14 @@ import useWSALayout from '@utils/hooks/useWSALayout'
 import { ANDROID } from '@constants/env'
 import NativeStacks from '@src/navigations/native-stacks'
 
-// iOS 侧载情况下, App 切出或者休眠后返回, 滑动退后会卡死, 暂不使用这个优化; 安卓开启以节省重叠页面的内存占用
-enableScreens(ANDROID)
+/**
+ * 这里不再调用 enableScreens(false)
+ * react-native-screens 4.x 默认启用 (ENABLE_SCREENS 初始值为 isNativePlatformSupported),
+ * 而 enableScreens(false) 会让 Screen 的 enabled 降级为 false (Screen.tsx 默认值取 screensEnabled()),
+ * 页面退化为普通 View 全部常驻内存, 是 iOS 上跳几个页面内存就打满被 Jetsam 掉的主因
+ */
+// enableScreens(ANDROID)
+
 LogBox.ignoreAllLogs(true)
 
 if (ANDROID) {
@@ -31,7 +37,7 @@ if (ANDROID) {
   StatusBar.setBackgroundColor('transparent')
 }
 
-export default function App() {
+function App() {
   // 加载图标等资源
   const loadingResult = useCachedResources()
 
@@ -49,9 +55,15 @@ export default function App() {
   const isLoadingComplete = loadingResult >= 3
   const elStacks = <NativeStacks isLoadingComplete={isLoadingComplete} />
 
+  /**
+   * iOS 26 的玻璃转场会把页面做圆角裁切和轻微缩放, 四边会露出底下容器的背景
+   * 根链必须是与主题一致的不透明底色 (container.plain), 否则黑暗模式下会闪白色边缘
+   */
+  const style = _.ios(_.container.plain, _.container.flex)
+
   return (
-    <GestureHandlerRootView style={_.container.flex}>
-      <SafeAreaProvider style={_.container.flex}>
+    <GestureHandlerRootView style={style}>
+      <SafeAreaProvider style={style}>
         <Provider>
           {!ANDROID ? <HoldMenuProvider>{elStacks}</HoldMenuProvider> : elStacks}
           {isLoadingComplete && (
@@ -65,3 +77,5 @@ export default function App() {
     </GestureHandlerRootView>
   )
 }
+
+export default observer(App)

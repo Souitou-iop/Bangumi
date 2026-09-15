@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2026-09-06 19:14:56
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-06 20:19:17
+ * @Last Modified time: 2026-09-09 15:55:32
  *
  * Image 组件 iOS 入口 (完全基于 expo-image)
  *
@@ -23,10 +23,11 @@ import { Image as RNImage } from 'react-native'
 import { observer } from 'mobx-react'
 import { Image as ExpoImage } from 'expo-image'
 import { _, systemStore } from '@stores'
+import { ensureCacheLimit } from '@utils/cache'
 import { r } from '@utils/dev'
 import { applyLainProxy } from '@utils/proxy'
 import { DOGE_CDN_IMG_DEFAULT, EVENT } from '@constants'
-import { IOS_IPA, TEXT_ONLY } from '@src/config'
+import { TEXT_ONLY } from '@src/config'
 import { devLog } from '../dev'
 import Error from './error'
 import { useImageAutoSize, useImageHeaders, useImageLoader } from './hooks'
@@ -55,6 +56,9 @@ const CONTENT_FIT: Record<string, 'cover' | 'contain' | 'fill' | 'none' | 'scale
   // expo-image 无平铺模式, 退化 cover
   repeat: 'cover'
 }
+
+/** 播放记录上限, 超出后最早的图片会重新播放一次过渡, 不影响正确性 */
+const SHOWN_MEMO_MAX = 500
 
 /** 已播放过渐出的图片地址, 同一地址仅首次显示过渡 (对齐安卓 remote 层的 memo 行为) */
 const shownMemo = new Map<string, boolean>()
@@ -100,11 +104,13 @@ export const Image = observer(function Image(baseProps: ImageProps) {
     onPress,
     onLongPress,
     errorToHide,
-    fadeDuration
+    fadeDuration,
+    cachePolicy
   } = props
 
   const headers = useImageHeaders(src, props.headers)
   const ctrl = useImageLoader(props, headers)
+
   // 稳定引用解构, 供下方 useCallback 依赖使用
   const { handleLoadEnd: onLoaderLoadEnd, handleError: onLoaderError } = ctrl
 
@@ -184,7 +190,10 @@ export const Image = observer(function Image(baseProps: ImageProps) {
 
     // 过渡播放完后记录, 避免同一地址再次播放 (对齐 remote 层行为)
     if (transition && uriKey) {
-      setTimeout(() => shownMemo.set(uriKey, true), IMAGE_FADE_DURATION + 100)
+      setTimeout(() => {
+        shownMemo.set(uriKey, true)
+        ensureCacheLimit(shownMemo, SHOWN_MEMO_MAX)
+      }, IMAGE_FADE_DURATION + 100)
     }
   }, [onLoaderLoadEnd, transition, uriKey])
 
@@ -199,6 +208,13 @@ export const Image = observer(function Image(baseProps: ImageProps) {
   /** resizeMode 透传转 contentFit, 未传时用两端一致的默认值 cover */
   const contentFit =
     (typeof props.resizeMode === 'string' && CONTENT_FIT[props.resizeMode]) || 'cover'
+
+  /**
+   * 默认缓存策略: 远程图在长列表里数量最多, memory-disk 会让解码位图常驻内存,
+   * 是 iOS 上内存持续上涨的主要来源之一; 默认只保留磁盘缓存 (回看时重新解码)
+   * 大图查看 (imageViewer) 需要来回切换, 保留内存缓存避免反复全屏解码
+   */
+  const defaultCachePolicy = imageViewer ? 'memory-disk' : 'disk'
 
   /** RN Image 透传 props 中 expo-image 仍支持的着色, 显式白名单转发 */
   const tintColor = props.tintColor
@@ -231,9 +247,10 @@ export const Image = observer(function Image(baseProps: ImageProps) {
               }
             }}
             contentFit={contentFit}
+            cachePolicy={cachePolicy || defaultCachePolicy}
             // expo-image priority 取值 ('low' | 'normal' | 'high') 与旧 prop 一致
             priority={props.priority}
-            tintColor={tintColor}
+            tintColor={tintColor as string}
             transition={transition}
             // 列表复用时按 src 回收, 降低大列表内存峰值
             recyclingKey={uriKey || undefined}
@@ -250,7 +267,7 @@ export const Image = observer(function Image(baseProps: ImageProps) {
         style={finalImageStyle}
         source={src as ExpoImageSource | number}
         contentFit={contentFit}
-        tintColor={tintColor}
+        tintColor={tintColor as string}
         transition={transition}
         recyclingKey={uriKey || undefined}
         onLoadEnd={handleLoadEnd}
@@ -260,8 +277,7 @@ export const Image = observer(function Image(baseProps: ImageProps) {
   }
 
   function renderSkeleton() {
-    // 与旧实现一致: IPA 上不显示骨架屏动画
-    if (IOS_IPA || !skeleton) return null
+    if (!skeleton) return null
 
     return (
       <Skeleton
