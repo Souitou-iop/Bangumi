@@ -1,0 +1,44 @@
+/*
+ * @Author: czy0729
+ * @Date: 2026-09-09 00:00:00
+ * @Last Modified by: czy0729
+ * @Last Modified time: 2026-09-09 00:00:00
+ */
+import { _ } from '@stores'
+import { WEB } from '@constants'
+
+export const memoStyles = _.memoStyles(() => ({
+  view: {
+    position: 'absolute',
+    zIndex: _.web(1, undefined),
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: _.colorPlain,
+    overflow: 'hidden'
+  },
+  body: {
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'absolute',
+    zIndex: 1,
+    left: _.device(48, 56),
+    right: WEB ? 0 : 56
+  },
+  bodyTitle: {
+    bottom: _.device(6, 10)
+  },
+  scrollView: {
+    maxWidth: WEB ? '100%' : '80%'
+  },
+  container: {
+    width: '100%',
+    paddingRight: _.md,
+    paddingLeft: _.sm
+  },
+  text: {
+    marginBottom: _.ios(0, 10),
+    marginLeft: -8
+  }
+}))

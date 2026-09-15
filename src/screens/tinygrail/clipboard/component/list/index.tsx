@@ -4,18 +4,18 @@
  * @Last Modified by: czy0729
  * @Last Modified time: 2025-12-27 06:33:21
  */
-import React from 'react'
+import { observer } from 'mobx-react'
 import { ListView } from '@components'
 import { _, useStore } from '@stores'
 import { keyExtractor } from '@utils'
-import { ob } from '@utils/decorators'
 import { renderItem } from './utils'
 import { COMPONENT } from './ds'
 
 import type { Ctx } from '../../types'
 
 function List() {
-  const { $ } = useStore<Ctx>()
+  const { $ } = useStore<Ctx>(COMPONENT)
+
   return (
     <ListView
       contentContainerStyle={_.container.bottom}
@@ -26,10 +26,10 @@ function List() {
       footerTextType='tinygrailText'
       footerEmptyDataText={`您可以复制带有人物链接或 ID 的文本\n进入本页面会自动获取粘贴板文本中所有角色 ID\n获取角色数据并生成列表`}
       data={$.list}
-      windowSize={6}
-      initialNumToRender={24}
-      maxToRenderPerBatch={24}
-      updateCellsBatchingPeriod={24}
+      windowSize={5}
+      initialNumToRender={16}
+      maxToRenderPerBatch={10}
+      updateCellsBatchingPeriod={40}
       lazy={24}
       scrollToTop
       renderItem={renderItem}
@@ -37,4 +37,4 @@ function List() {
   )
 }
 
-export default ob(List, COMPONENT)
+export default observer(List)

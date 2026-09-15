@@ -1,6 +1,6 @@
 {
   "name": "bangumi",
-  "version": "8.39.4",
+  "version": "8.40.0",
   "main": "index.js",
   "private": true,
   "scripts": {
@@ -45,7 +45,7 @@
     "@types/react": "~19.2.2",
     "cheerio": "1.0.0",
     "core-js": "3.36.0",
-    "expo": "~57.0.20",
+    "expo": "~57.0.21",
     "expo-asset": "~57.0.16",
     "expo-blur": "~57.0.2",
     "expo-calendar": "~57.0.2",

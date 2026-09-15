@@ -13,6 +13,7 @@ import { _ } from '@stores'
 import { t } from '@utils/fetch'
 import { useAsyncSetSetting } from '@utils/hooks'
 import { MODEL_SETTING_TRANSITION } from '@constants'
+import { IconAnimation } from '../../icons'
 import { TEXTS } from '../ds'
 import { memoStyles } from './styles'
 
@@ -46,7 +47,7 @@ function Transition({ filter }: WithFilterProps) {
   }
 
   return (
-    <ItemSettingBlock style={_.mt.sm} filter={filter} {...TEXTS.transition.setting}>
+    <ItemSettingBlock icon={<IconAnimation />} filter={filter} {...TEXTS.transition.setting}>
       <ItemSettingBlock.Item {...genItemProps('horizontal')}>
         <Flex style={styles.container} justify='center'>
           <View
@@ -77,9 +78,9 @@ function Transition({ filter }: WithFilterProps) {
       </ItemSettingBlock.Item>
 
       <ItemSettingBlock.Item style={_.ml.md} {...genItemProps('scale')}>
-        <Flex style={styles.container} direction='column' justify='center'>
-          <View style={[styles.page, styles.pageScale]} />
-          <View style={[styles.page, styles.pageScaleCurrent]} />
+        <Flex style={styles.container} justify='center'>
+          <View style={styles.page} />
+          <View style={[styles.page, styles.pageSlideFade]} />
         </Flex>
       </ItemSettingBlock.Item>
 

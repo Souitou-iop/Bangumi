@@ -2,14 +2,13 @@
  * @Author: czy0729
  * @Date: 2023-08-01 05:47:28
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-27 09:08:22
+ * @Last Modified time: 2026-09-10 00:45:07
  */
-import React from 'react'
 import { observer } from 'mobx-react'
 import { _ } from '@stores'
 import { date, getTimestamp, open, stl } from '@utils'
 import { HOST_IMAGE_UPLOAD_RYMK } from '@constants'
-import { Flex } from '../../../flex'
+import { flexStyle } from '../../../flex'
 import { Iconfont } from '../../../iconfont'
 import { Text } from '../../../text'
 import { Touchable } from '../../../touchable'
@@ -39,10 +38,11 @@ function Btn({
     const active = showBgm && !showReplyHistory
 
     return (
-      <Touchable style={[styles.btn, _.ml.xs]} onPress={active ? onHideBgm : onShowBgm}>
-        <Flex style={styles.icon} justify='center'>
-          <Iconfont name='icon-more-grid' color={active ? _.colorMain : _.colorSub} />
-        </Flex>
+      <Touchable
+        style={stl(flexStyle({ justify: 'center' }), styles.btn, _.ml.xs, styles.icon)}
+        onPress={active ? onHideBgm : onShowBgm}
+      >
+        <Iconfont name='icon-more-grid' color={active ? _.colorMain : _.colorSub} />
       </Touchable>
     )
   }
@@ -51,16 +51,14 @@ function Btn({
   if (text === '历史') {
     return (
       <Touchable
-        style={styles.btn}
+        style={stl(flexStyle({ justify: 'center' }), styles.btn, styles.icon)}
         onPress={showReplyHistory ? onHideReplyHistory : onShowReplyHistory}
       >
-        <Flex style={styles.icon} justify='center'>
-          <Iconfont
-            name='icon-history'
-            color={showReplyHistory ? _.colorMain : _.colorSub}
-            size={20}
-          />
-        </Flex>
+        <Iconfont
+          name='icon-history'
+          color={showReplyHistory ? _.colorMain : _.colorSub}
+          size={20}
+        />
       </Touchable>
     )
   }
@@ -69,14 +67,12 @@ function Btn({
   if (text === '时间') {
     return (
       <Touchable
-        style={styles.btn}
+        style={stl(flexStyle({ justify: 'center' }), styles.btn, styles.icon)}
         onPress={() => {
           onAddSymbolText(`[${date('Y-m-d H:i', getTimestamp())}] `, true)
         }}
       >
-        <Flex style={styles.icon} justify='center'>
-          <Iconfont name='md-access-time' color={_.colorSub} size={20} />
-        </Flex>
+        <Iconfont name='md-access-time' color={_.colorSub} size={20} />
       </Touchable>
     )
   }
@@ -85,15 +81,18 @@ function Btn({
 
   return (
     <Touchable
-      style={stl(styles.btn, iconName && isBtnText(iconName) && styles.text)}
+      style={stl(
+        iconName && flexStyle({ justify: 'center' }),
+        styles.btn,
+        iconName && isBtnText(iconName) && styles.text,
+        iconName && styles.icon
+      )}
       onPress={() => {
         text === '图床' ? open(HOST_IMAGE_UPLOAD_RYMK) : onAddSymbolText(symbol)
       }}
     >
       {iconName ? (
-        <Flex style={styles.icon} justify='center'>
-          <Iconfont name={iconName} color={_.colorSub} size={18} />
-        </Flex>
+        <Iconfont name={iconName} color={_.colorSub} size={18} />
       ) : (
         <Text type='sub' size={textSize} align='center'>
           {text}

@@ -2,16 +2,15 @@
  * @Author: czy0729
  * @Date: 2023-07-29 04:25:52
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-27 08:25:21
+ * @Last Modified time: 2026-09-10 00:44:50
  */
-import React from 'react'
 import { View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { observer } from 'mobx-react'
 import { _ } from '@stores'
 import { stl } from '@utils'
 import { IOS } from '@constants'
-import { Flex } from '../../flex'
+import { Flex, flexStyle } from '../../flex'
 import { Iconfont } from '../../iconfont'
 import { SafeAreaBottom } from '../../safe-area-bottom'
 import { TextareaItem } from '../../textarea-item'
@@ -83,10 +82,11 @@ function Textarea({
         </Flex.Item>
         {IOS && !editing && <Touchable style={styles.placeholder} onPress={onFocus} />}
         {editing && (
-          <Touchable style={styles.touch} onPress={onSubmit}>
-            <Flex style={styles.send} justify='center'>
-              <Iconfont name='md-send' size={16} color={value !== '' ? _.colorMain : _.colorSub} />
-            </Flex>
+          <Touchable
+            style={stl(flexStyle({ justify: 'center' }), styles.touch, styles.send)}
+            onPress={() => onSubmit?.(value)}
+          >
+            <Iconfont name='md-send' size={16} color={value !== '' ? _.colorMain : _.colorSub} />
           </Touchable>
         )}
         <SourceText

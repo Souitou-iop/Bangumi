@@ -2,16 +2,15 @@
  * @Author: czy0729
  * @Date: 2020-09-03 10:47:08
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-06-06 07:32:07
+ * @Last Modified time: 2026-09-12 03:45:25
  */
-import React from 'react'
 import { View } from 'react-native'
+import { observer } from 'mobx-react'
 import { Flex, Heatmap, HorizontalList, Image, Loading, Text, Touchable } from '@components'
 import { getCoverSrc } from '@components/cover/utils'
 import { Cover, Manage, Rank, Stars, Tags } from '@_'
 import { _, collectionStore, otaStore, uiStore } from '@stores'
 import { HTMLDecode, showImageViewer, stl, x18 } from '@utils'
-import { ob } from '@utils/decorators'
 import { withT } from '@utils/fetch'
 import { useNavigation } from '@utils/hooks'
 import {
@@ -23,13 +22,14 @@ import {
   WEB
 } from '@constants'
 import { getThumbs, toArray } from './utils'
-import { THUMB_HEIGHT, THUMB_WIDTH } from './ds'
+import { COMPONENT, THUMB_HEIGHT, THUMB_WIDTH } from './ds'
 import { memoStyles } from './styles'
 
 import type { CollectionStatus } from '@types'
 
 function ItemList({ index, pickIndex }) {
-  const navigation = useNavigation()
+  const navigation = useNavigation(COMPONENT)
+
   const styles = memoStyles()
   const subjectId = otaStore.gameSubjectId(pickIndex)
   const game = otaStore.game(subjectId)
@@ -58,6 +58,16 @@ function ItemList({ index, pickIndex }) {
   const cover = image ? `${HOST_BGM_STATIC}/pic/cover/m/${image}.jpg` : IMG_DEFAULT
   const thumbs = getThumbs(id, length)
   const thumbs2 = getThumbs(id, length, false)
+
+  /** 仅展示部分缩略图, 供 data 与末张判定共用 */
+  const thumbsData = thumbs
+    .filter((_item, index) => {
+      if (!WEB) return index < 3
+
+      if (thumbs.length <= 1) return true
+      return index > 0 && index < 4
+    })
+    .map((image, id) => ({ id, image }))
 
   const tag = toArray(game, 'ta')
   const dev = toArray(game, 'd')
@@ -146,17 +156,12 @@ function ItemList({ index, pickIndex }) {
           {!!thumbs.length && (
             <View style={styles.thumbs}>
               <HorizontalList
-                data={thumbs.filter((_item, index) => {
-                  if (!WEB) return index < 3
-
-                  if (thumbs.length <= 1) return true
-                  return index > 0 && index < 4
-                })}
+                data={thumbsData}
                 renderItem={(item, index) => (
                   <Image
-                    key={item}
-                    style={stl(!!index && _.ml.sm, index === thumbs.length - 1 && _.mr.md)}
-                    src={item}
+                    key={item.id}
+                    style={stl(!!index && _.ml.sm, index === thumbsData.length - 1 && _.mr.md)}
+                    src={item.image}
                     size={THUMB_WIDTH}
                     height={THUMB_HEIGHT}
                     radius
@@ -202,4 +207,4 @@ function ItemList({ index, pickIndex }) {
   )
 }
 
-export default ob(ItemList)
+export default observer(ItemList)
