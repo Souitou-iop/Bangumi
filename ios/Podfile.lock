@@ -8,7 +8,7 @@ PODS:
   - EXJSONUtils (57.0.1)
   - EXManifests (57.0.1):
     - ExpoModulesCore
-  - Expo (57.0.20):
+  - Expo (57.0.23):
     - ExpoModulesCore
     - ExpoModulesJSI
     - hermes-engine
@@ -57,13 +57,13 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
-  - ExpoKeepAwake (57.0.1):
+  - ExpoKeepAwake (57.0.2):
     - ExpoModulesCore
   - ExpoLinearGradient (57.0.1):
     - ExpoModulesCore
   - ExpoLogBox (57.0.4):
     - React-Core
-  - ExpoModulesCore (57.0.16):
+  - ExpoModulesCore (57.0.18):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -87,13 +87,13 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoModulesJSI (57.0.8):
+  - ExpoModulesJSI (57.1.0):
     - React-Core
     - ReactCommon
-  - ExpoModulesWorklets (57.0.16):
+  - ExpoModulesWorklets (57.0.18):
     - ExpoModulesCore
     - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (57.0.16):
+  - ExpoModulesWorkletsAdapter (57.0.18):
     - ExpoModulesCore
     - ExpoModulesJSI
     - ExpoModulesWorklets
@@ -2915,7 +2915,7 @@ SPEC CHECKSUMS:
   EXConstants: 799577d2516460afb4b57874d6823a62327ce5c7
   EXJSONUtils: 7a1683cfa2cbe6d11fca97097d51a496755b0287
   EXManifests: f9888c0bf5aaa6ddb7e3d4b224d6d54ac4ca84a4
-  Expo: 20c445ed59fdd6e967ced0bd3d3e99be771ea176
+  Expo: d06878ab7512dbcb2deec84c4d56f07af8a8b765
   ExpoAsset: bea9115098b9f4ddfb0456961c8a7d2779ccc8f5
   ExpoBlur: 69e67b4fbfed6f7325377af2aefa8aa4f00cd2af
   ExpoCalendar: 0bb9b2fbafb10dcfbfeb53649058397807f00f4f
@@ -2925,13 +2925,13 @@ SPEC CHECKSUMS:
   ExpoFont: d5b77d74f8d5d1a248de70955bfad847079e9074
   ExpoHaptics: bc5461002fc97e53c213a1af6c88c8f95965b734
   ExpoImage: 83e66008c6440975f7f279b78bb80f1f9c0c24ca
-  ExpoKeepAwake: c26f14275017370cc8a4b7b43a0e23361f2053a5
+  ExpoKeepAwake: 72af0b3be3615e59bc819d26061ff4e06b155ee0
   ExpoLinearGradient: 903b3f5fe566c666ff78b2599add51d094483613
   ExpoLogBox: 80957303325cd4439137765c90a87d7f22aaf2ff
-  ExpoModulesCore: bf0f447c9164035bdc8d58b939cddfb07b64b608
-  ExpoModulesJSI: 1a6f80255963c29cdf9a11d59cbdc12b3558d585
-  ExpoModulesWorklets: 161e2e951499cdbadb74acf4af86ff19d02919c9
-  ExpoModulesWorkletsAdapter: 5c62c6f47ad637fad26d685b2677fbafe09c6d13
+  ExpoModulesCore: 859b593d784f53f2a55224dd0b21e7c80556465e
+  ExpoModulesJSI: 9df8e7c9719f59e8c001ec33611774137fc1484a
+  ExpoModulesWorklets: 986cf72c18400743869b4642d243115f831e404d
+  ExpoModulesWorkletsAdapter: 45b4ea99adb80abaa012b45e9a9543b4763275c9
   ExpoScreenOrientation: 29f306f9e1a37b304862310ceb9664866f653ebd
   ExpoSpeech: a7da9746b9f7549b4e08aaf1e1335de15c1e9b54
   ExpoSplashScreen: 6f422fd595600d78520c6b7dcf8a908fb8a7fec0
