@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2026-09-06 19:14:56
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-09 15:55:32
+ * @Last Modified time: 2026-09-16 23:32:24
  *
  * Image 组件 iOS 入口 (完全基于 expo-image)
  *
@@ -19,13 +19,12 @@
  * - 调试壳 + 触摸 + ImageViewer: touchable
  */
 import { useCallback, useMemo } from 'react'
-import { Image as RNImage } from 'react-native'
 import { observer } from 'mobx-react'
 import { Image as ExpoImage } from 'expo-image'
 import { _, systemStore } from '@stores'
 import { ensureCacheLimit } from '@utils/cache'
 import { r } from '@utils/dev'
-import { applyLainProxy } from '@utils/proxy'
+import { resolveImageUri } from '@utils/image'
 import { DOGE_CDN_IMG_DEFAULT, EVENT } from '@constants'
 import { TEXT_ONLY } from '@src/config'
 import { devLog } from '../dev'
@@ -39,13 +38,10 @@ import { computeImageStyles, imageViewerCallback, withDefaults } from './utils'
 import { COMPONENT, IMAGE_FADE_DURATION } from './ds'
 import { memoStyles } from './styles'
 
-// 项目中若需要使用原本的 RN Image Component, 也需在这里引入以便统一管理
-export { RNImage }
-
 import type { ImageErrorEvent } from 'react-native'
 import type { ImageSource as ExpoImageSource } from 'expo-image'
-import type { Props as ImageProps, State } from './types'
-export type { ImageProps }
+import type { ImageProgressEvent, ImageRetryInfo, Props as ImageProps, State } from './types'
+export type { ImageProps, ImageRetryInfo }
 
 /** RN Image resizeMode → expo-image contentFit 映射 (两端默认值一致, 均为 cover) */
 const CONTENT_FIT: Record<string, 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'> = {
@@ -105,7 +101,8 @@ export const Image = observer(function Image(baseProps: ImageProps) {
     onLongPress,
     errorToHide,
     fadeDuration,
-    cachePolicy
+    cachePolicy,
+    onProgress
   } = props
 
   const headers = useImageHeaders(src, props.headers)
@@ -205,6 +202,14 @@ export const Image = observer(function Image(baseProps: ImageProps) {
     [onLoaderError]
   )
 
+  /** 下载进度透出: expo-image 的事件体与统一形态一致, 只需透传 */
+  const handleProgress = useCallback(
+    (event: ImageProgressEvent) => {
+      onProgress?.(event)
+    },
+    [onProgress]
+  )
+
   /** resizeMode 透传转 contentFit, 未传时用两端一致的默认值 cover */
   const contentFit =
     (typeof props.resizeMode === 'string' && CONTENT_FIT[props.resizeMode]) || 'cover'
@@ -234,7 +239,7 @@ export const Image = observer(function Image(baseProps: ImageProps) {
       if (!uri) return <Placeholder style={finalImageStyle} />
 
       if (typeof uri === 'string') {
-        const finalUri = applyLainProxy(uri)
+        const finalUri = resolveImageUri(uri)
         return (
           <ExpoImage
             style={finalImageStyle}
@@ -250,12 +255,14 @@ export const Image = observer(function Image(baseProps: ImageProps) {
             cachePolicy={cachePolicy || defaultCachePolicy}
             // expo-image priority 取值 ('low' | 'normal' | 'high') 与旧 prop 一致
             priority={props.priority}
+            blurRadius={props.blurRadius}
             tintColor={tintColor as string}
             transition={transition}
             // 列表复用时按 src 回收, 降低大列表内存峰值
             recyclingKey={uriKey || undefined}
             onLoadEnd={handleLoadEnd}
             onError={handleError}
+            onProgress={onProgress ? handleProgress : undefined}
           />
         )
       }
@@ -267,6 +274,7 @@ export const Image = observer(function Image(baseProps: ImageProps) {
         style={finalImageStyle}
         source={src as ExpoImageSource | number}
         contentFit={contentFit}
+        blurRadius={props.blurRadius}
         tintColor={tintColor as string}
         transition={transition}
         recyclingKey={uriKey || undefined}

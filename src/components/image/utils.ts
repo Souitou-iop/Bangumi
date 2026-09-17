@@ -2,13 +2,13 @@
  * @Author: czy0729
  * @Date: 2022-05-28 02:06:44
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-14 07:21:39
+ * @Last Modified time: 2026-09-16 05:39:41
  */
 import { Image as RNImage } from 'react-native'
 import { _ } from '@stores'
 import { ensureCacheLimit, getCover400, getStorage, setStorage, showImageViewer } from '@utils'
 import { t } from '@utils/fetch'
-import { getProxyImageHeaders } from '@utils/proxy'
+import { getProxyImageHeaders, normalizeLainImageUrl } from '@utils/proxy'
 import hash from '@utils/thirdParty/hash'
 import { HOST_BGM_STATIC, HOST_CDN, HOST_IMAGE, IOS, WEB } from '@constants'
 import { getSkeletonColor } from '../skeleton/utils'
@@ -108,8 +108,11 @@ export function computeHeaders(
   src: Props['src'],
   headers?: Record<string, string>
 ): Record<string, string> {
-  const isLain = typeof src === 'string' && src.includes('lain.')
-  const proxyHeaders = typeof src === 'string' ? getProxyImageHeaders(src) : {}
+  // 归一化后再判定: 旧代理域名 (含已失效节点) 会回到 lain.bgm.tv;
+  // Referer 与鉴权头统一以归一化结果为输入, 避免两处判定不同源造成语义分叉
+  const normalizedSrc = typeof src === 'string' ? normalizeLainImageUrl(src) : src
+  const isLain = typeof normalizedSrc === 'string' && normalizedSrc.includes('lain.')
+  const proxyHeaders = typeof normalizedSrc === 'string' ? getProxyImageHeaders(normalizedSrc) : {}
 
   if (headers) {
     if (isLain) return { ...DEFAULT_HEADERS, ...proxyHeaders, ...(headers || {}) }
@@ -279,6 +282,22 @@ export function removeLocalCache(src: string) {
 /** 指数退避重试间隔 (首次 1s, 逐次翻倍), 上限 1 小时 */
 export function getNextRetryDelay(attempt: number) {
   return Math.min(1000 * Math.pow(2, attempt), 3600000)
+}
+
+/**
+ * 是否已到达退避重试上限
+ *  - retryLimit 未传 / 非有限数 / 负数 一律视为不限制 (保持无限退避)
+ *  - retryLimit 为 0 表示失败后不重试
+ *
+ * @param retryLimit 失败后的最大重试次数
+ * @param attempt 已排过的重试次数
+ * */
+export function isRetryExhausted(retryLimit: number | undefined, attempt: number): boolean {
+  if (typeof retryLimit !== 'number' || !Number.isFinite(retryLimit)) return false
+  // 负数与未传同义 (不限制), 避免上游误传负值时把退避彻底关掉
+  if (retryLimit < 0) return false
+
+  return attempt >= retryLimit
 }
 
 /**
