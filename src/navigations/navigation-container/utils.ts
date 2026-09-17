@@ -9,6 +9,7 @@ import { _ } from '@stores'
 import { IOS } from '@constants'
 import { DEV } from '@src/config'
 
+import { DefaultTheme } from '@react-navigation/native'
 import type { Theme } from '@react-navigation/native'
 import type { Navigation } from '@types'
 
@@ -27,6 +28,7 @@ export function getTheme(): Theme {
 
   return {
     dark: _.isDark,
+    fonts: DefaultTheme.fonts,
     colors: {
       primary: _.colorMain,
       background: _.colorPlain,
