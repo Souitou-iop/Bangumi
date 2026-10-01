@@ -6,7 +6,6 @@
  */
 import { computed } from 'mobx'
 import { fixedHD, getCDNAvatar } from '@components/avatar/utils'
-import { fixedRemoteImageUrl } from '@components/image/utils'
 import {
   _,
   rakuenStore,
@@ -20,7 +19,7 @@ import { USER_STATS_TYPES } from '@stores/users/ds'
 import { INIT_USER_STATS } from '@stores/users/init'
 import { getBlurRadius, HTMLDecode } from '@utils'
 import { logger } from '@utils/dev'
-import { applyLainProxy } from '@utils/proxy'
+import { fixImageProtocol, resolveImageUri } from '@utils/image'
 import { fixedRemote } from '@utils/user-setting'
 import { IMG_EMPTY_DARK, TEXT_ONLY } from '@constants'
 import { COLLECTION_TYPES, H_HEADER, TABS, TABS_WITH_TINYGRAIL } from '../ds'
@@ -179,7 +178,7 @@ export default class Computed extends State {
 
   /** 实际显示头像地址 */
   @computed get src() {
-    return fixedRemoteImageUrl(
+    return fixImageProtocol(
       getCDNAvatar(
         fixedHD(this.avatar || this.usersInfo.avatar?.large || this.params._image),
         'bgm_poster_200'
@@ -199,7 +198,7 @@ export default class Computed extends State {
       source = IMG_EMPTY_DARK
     } else {
       if (typeof _image === 'string' && !!_image) source.uri = _image
-      source.uri = applyLainProxy(fixedHD(this.bg || this.avatar || source.uri))
+      source.uri = resolveImageUri(fixedHD(this.bg || this.avatar || source.uri))
     }
 
     return source

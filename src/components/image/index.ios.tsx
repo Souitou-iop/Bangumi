@@ -2,12 +2,12 @@
  * @Author: czy0729
  * @Date: 2026-09-06 19:14:56
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-16 23:32:24
+ * @Last Modified time: 2026-09-27 08:20:58
  *
  * Image 组件 iOS 入口 (完全基于 expo-image)
  *
  * expo-image 已内建、直接使用的能力 (旧实现对应的自研逻辑均已移除):
- * - 磁盘 + 内存缓存 (cachePolicy): 替代 image-cache-manager 的下载队列 / sha1 落盘 / LRU 清理 /
+ * - 磁盘 + 内存缓存 (cachePolicy): 替代 disk-image-cache 的下载队列 / sha1 落盘 / LRU 清理 /
  *   memoLocal 命中表 / 下载超时竞速, URI 恒为远端地址
  * - 加载过渡动画 (transition): 替代 remote 层的 reanimated fade
  * - priority / recyclingKey / source.headers: 对应旧的 priority / 列表回收 / 防盗链请求头
@@ -239,6 +239,11 @@ export const Image = observer(function Image(baseProps: ImageProps) {
       if (!uri) return <Placeholder style={finalImageStyle} />
 
       if (typeof uri === 'string') {
+        // iOS 同安卓: autoSize 场景宽高未测得前显示占位, 避免先按兜底尺寸渲染再跳变到实测尺寸
+        if ((autoSize && !ctrl.width) || (autoHeight && !ctrl.height)) {
+          return <Placeholder style={finalImageStyle} />
+        }
+
         const finalUri = resolveImageUri(uri)
         return (
           <ExpoImage

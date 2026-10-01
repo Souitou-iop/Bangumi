@@ -2,13 +2,19 @@
  * @Author: czy0729
  * @Date: 2023-04-26 14:48:19
  * @Last Modified by: czy0729
- * @Last Modified time: 2025-11-06 06:21:12
+ * @Last Modified time: 2026-10-01 05:51:38
  */
 import { pick } from '@utils'
 import { gets } from '@utils/kv'
+import { CDN_ADV_DETAIL } from '@constants/cdn/adv'
+import { CDN_GAME_DETAIL } from '@constants/cdn/game'
 import Computed from './computed'
+import { fetchDetails, isFailed, isRetried, log } from './utils'
 
+import type { ResultData } from '@utils/kv/type'
+import type { UnzipItem as NSFWItem } from '@utils/subject/nsfw/types'
 import type { SubjectId } from '@types'
+import type { ADVItem, AnimeItem, GameItem, HentaiItem, MangaItem, WenkuItem } from './types'
 
 export default class Fetch extends Computed {
   fetchAnime = async (subjectId: SubjectId) => {
@@ -17,29 +23,28 @@ export default class Fetch extends Computed {
     const key = `age_${subjectId}`
     if (!subjectId || key in this.state.anime) return
 
-    const datas = await gets([key])
+    const datas = await gets<ResultData<AnimeItem>>([key])
     if (datas) {
-      const key = 'anime'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<AnimeItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = item
+          data[itemKey] = item
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        anime: data
       })
-      this.save(key)
+      this.save('anime')
     }
   }
 
   onAnimePage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    const keys: string[] = []
     list.forEach(index => {
       const subjectId = this.animeSubjectId(index)
       const key = `age_${subjectId}`
@@ -48,14 +53,13 @@ export default class Fetch extends Computed {
     })
     if (!keys.length) return
 
-    const datas = await gets(keys)
+    const datas = await gets<ResultData<AnimeItem>>(keys)
     if (datas) {
-      const key = 'anime'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<AnimeItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = pick(item, [
+          data[itemKey] = pick(item, [
             'id',
             'ageId',
             'image',
@@ -73,13 +77,13 @@ export default class Fetch extends Computed {
             'total'
           ])
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        anime: data
       })
-      this.save(key)
+      this.save('anime')
     }
   }
 
@@ -89,91 +93,105 @@ export default class Fetch extends Computed {
     const key = `game_${subjectId}`
     if (!subjectId || key in this.state.game) return
 
-    const datas = await gets([key])
+    const datas = await gets<ResultData<GameItem>>([key])
     if (datas) {
-      const key = 'game'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<GameItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = item
+          data[itemKey] = item
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        game: data
       })
-      this.save(key)
+      this.save('game')
     }
   }
 
+  /** 游戏详情: CDN 加密单文件 (每条一文件, Crypto.get 解密) */
   onGamePage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    /** 判重: 无详情且本轮未失败过的直接请求, 已加载但缺封面的每轮冷启动重试一次 */
+    const subjectIds: SubjectId[] = []
     list.forEach(index => {
       const subjectId = this.gameSubjectId(index)
-      const key = `game_${subjectId}`
-      if (!subjectId || key in this.state.game) return
-      keys.push(key)
-    })
-    if (!keys.length) return
+      if (!subjectId) return
 
-    const datas = await gets(keys)
-    if (datas) {
-      const key = 'game'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
-        if (item && typeof item === 'object') {
-          data[key] = item
-        } else {
-          data[key] = {}
-        }
-      })
-      this.setState({
-        [key]: data
-      })
-      this.save(key)
-    }
+      const key = `game_${subjectId}`
+      const item = this.state.game[key] as Partial<GameItem> | undefined
+      if (item?.t) {
+        if (item.c || isRetried(key)) return
+      } else if (isFailed(key)) {
+        return
+      }
+      subjectIds.push(subjectId)
+    })
+    if (!subjectIds.length) return
+
+    const data = await fetchDetails<GameItem>(subjectIds, 'game', CDN_GAME_DETAIL, item => !!item.t)
+    log('onGamePage', {
+      total: list.length,
+      requested: subjectIds.length,
+      loaded: Object.keys(data).length,
+      noCover: Object.keys(data).filter(key => !data[key].c)
+    })
+    if (!Object.keys(data).length) return
+
+    this.setState({
+      game: data
+    })
+    this.save('game')
   }
 
+  /** ADV 详情: CDN 加密单文件 (每条一文件, Crypto.get 解密) */
   onADVPage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    /** 判重: 无详情且本轮未失败过的直接请求, 已加载但缺封面的每轮冷启动重试一次 */
+    const subjectIds: SubjectId[] = []
     list.forEach(index => {
       const subjectId = this.advSubjectId(index)
-      const key = `adv_${subjectId}`
-      if (!subjectId || key in this.state.game) return
-      keys.push(key)
-    })
-    if (!keys.length) return
+      if (!subjectId) return
 
-    const datas = await gets(keys)
-    if (datas) {
-      const key = 'adv'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
-        if (item && typeof item === 'object') {
-          data[key] = item
-        } else {
-          data[key] = {}
-        }
-      })
-      this.setState({
-        [key]: data
-      })
-      this.save(key)
-    }
+      const key = `adv_${subjectId}`
+      const item = this.state.adv[key] as Partial<ADVItem> | undefined
+      if (item?.title) {
+        if (item.cover || isRetried(key)) return
+      } else if (isFailed(key)) {
+        return
+      }
+      subjectIds.push(subjectId)
+    })
+    if (!subjectIds.length) return
+
+    const data = await fetchDetails<ADVItem>(
+      subjectIds,
+      'adv',
+      CDN_ADV_DETAIL,
+      item => !!item.title
+    )
+    log('onADVPage', {
+      total: list.length,
+      requested: subjectIds.length,
+      loaded: Object.keys(data).length,
+      noCover: Object.keys(data).filter(key => !data[key].cover)
+    })
+    if (!Object.keys(data).length) return
+
+    this.setState({
+      adv: data
+    })
+    this.save('adv')
   }
 
   onMangaPage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    const keys: string[] = []
     list.forEach(index => {
       const subjectId = this.mangaSubjectId(index)
       const key = `mox_${subjectId}`
@@ -182,14 +200,13 @@ export default class Fetch extends Computed {
     })
     if (!keys.length) return
 
-    const datas = await gets(keys)
+    const datas = await gets<ResultData<MangaItem>>(keys)
     if (datas) {
-      const key = 'manga'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<MangaItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = pick(item, [
+          data[itemKey] = pick(item, [
             'id',
             'mid',
             'title',
@@ -207,20 +224,20 @@ export default class Fetch extends Computed {
             'end'
           ])
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        manga: data
       })
-      this.save(key)
+      this.save('manga')
     }
   }
 
   onWenkuPage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    const keys: string[] = []
     list.forEach(index => {
       const subjectId = this.wenkuSubjectId(index)
       const key = `wk8_${subjectId}`
@@ -229,29 +246,28 @@ export default class Fetch extends Computed {
     })
     if (!keys.length) return
 
-    const datas = await gets(keys)
+    const datas = await gets<ResultData<WenkuItem>>(keys)
     if (datas) {
-      const key = 'wenku'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<WenkuItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = item
+          data[itemKey] = item
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        wenku: data
       })
-      this.save(key)
+      this.save('wenku')
     }
   }
 
   onHentaiPage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    const keys: string[] = []
     list.forEach(index => {
       const subjectId = this.hentaiSubjectId(index)
       const key = `hentai_${subjectId}`
@@ -260,29 +276,28 @@ export default class Fetch extends Computed {
     })
     if (!keys.length) return
 
-    const datas = await gets(keys)
+    const datas = await gets<ResultData<HentaiItem>>(keys)
     if (datas) {
-      const key = 'hentai'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<HentaiItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = item
+          data[itemKey] = item
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        hentai: data
       })
-      this.save(key)
+      this.save('hentai')
     }
   }
 
   onNSFWPage = async (list: number[]) => {
     if (!list.length) return
 
-    const keys = []
+    const keys: string[] = []
     list.forEach(index => {
       const subjectId = this.nsfwSubjectId(index)
       const key = `nsfw_${subjectId}`
@@ -291,22 +306,21 @@ export default class Fetch extends Computed {
     })
     if (!keys.length) return
 
-    const datas = await gets(keys)
+    const datas = await gets<ResultData<NSFWItem>>(keys)
     if (datas) {
-      const key = 'nsfw'
-      const data = {}
-      Object.keys(datas).forEach(key => {
-        const item = datas[key]
+      const data: Record<string, Partial<NSFWItem>> = {}
+      Object.keys(datas).forEach(itemKey => {
+        const item = datas[itemKey]
         if (item && typeof item === 'object') {
-          data[key] = item
+          data[itemKey] = item
         } else {
-          data[key] = {}
+          data[itemKey] = {}
         }
       })
       this.setState({
-        [key]: data
+        nsfw: data
       })
-      this.save(key)
+      this.save('nsfw')
     }
   }
 }

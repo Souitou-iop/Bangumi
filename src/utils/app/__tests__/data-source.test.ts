@@ -2,7 +2,7 @@
  * @Author: czy0729
  * @Date: 2026-09-03 23:27:12
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-03 23:27:12
+ * @Last Modified time: 2026-09-21 06:08:05
  *
  * data-source.ts 单元测试
  */
@@ -22,8 +22,7 @@ jest.mock(
 
 jest.mock('@utils/cdn', () => ({
   CDN_OSS_MAGMA_MONO: (src: string) => src,
-  CDN_OSS_MAGMA_POSTER: (src: string) => src,
-  CDN_OSS_SUBJECT: (src: string) => src
+  CDN_OSS_MAGMA_POSTER: (src: string) => src
 }))
 
 jest.mock('@constants/host', () => ({
@@ -131,6 +130,7 @@ import {
   getCoverLarge,
   getCoverMedium,
   getCoverSmall,
+  getHeaderTitleSize,
   getMonoCoverSmall,
   getRating,
   getSubjectCoverCommon,
@@ -191,6 +191,20 @@ describe('getVisualLength', () => {
 
   it('感叹号等半角符号', () => {
     expect(getVisualLength('!@#')).toBe(1.5)
+  })
+})
+
+describe('getHeaderTitleSize', () => {
+  it('短标题用默认字号 16', () => {
+    expect(getHeaderTitleSize('')).toBe(16)
+    expect(getHeaderTitleSize('条目目录')).toBe(16)
+    expect(getHeaderTitleSize('abc12345678')).toBe(16)
+  })
+
+  it('按视觉长度分档递减', () => {
+    expect(getHeaderTitleSize('包含超长条目名称的目录合集')).toBe(15)
+    expect(getHeaderTitleSize('包含很长很长条目名称的目录合集')).toBe(14)
+    expect(getHeaderTitleSize('包含特别长特别长条目名称的目录合集')).toBe(13)
   })
 })
 
@@ -271,6 +285,14 @@ describe('fixedRemoteImageUrl', () => {
 
   it('空字符串返回空字符串', () => {
     expect(fixedRemoteImageUrl('')).toBe('')
+  })
+
+  it('非远程地址原样返回 (不拼接 https: 前缀)', () => {
+    // 旧实现对一切非空字符串都会处理: data:/file:/相对路径会被拼成 https:data:... 一类坏地址
+    expect(fixedRemoteImageUrl('data:image/png;base64,xxx')).toBe('data:image/png;base64,xxx')
+    expect(fixedRemoteImageUrl('file:///storage/x.jpg')).toBe('file:///storage/x.jpg')
+    expect(fixedRemoteImageUrl('blob:https://a/b')).toBe('blob:https://a/b')
+    expect(fixedRemoteImageUrl('img/local.png')).toBe('img/local.png')
   })
 })
 

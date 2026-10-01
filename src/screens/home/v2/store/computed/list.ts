@@ -2,10 +2,12 @@
  * @Author: czy0729
  * @Date: 2026-08-27 02:35:00
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-08-27 03:53:30
+ * @Last Modified time: 2026-09-28 10:00:00
+ *
+ * 首页列表派生: 按当前 Tab 与设置筛选排序后的条目列表
  */
 import { calendarStore, systemStore } from '@stores'
-import CacheManager from '@utils/cache-manager'
+import { cacheManager } from '@utils/cache'
 import { computedFn } from '@utils/computed-fn'
 import { MODEL_SETTING_HOME_SORTING, MODEL_SUBJECT_TYPE, WEB } from '@constants'
 import { NAMESPACE } from '../ds'
@@ -25,7 +27,7 @@ export default class List extends Air {
 
     // 列队刷新收藏状态期间优先返回快照, 避免队列中数据逐步变化导致列表闪烁
     if (isFetching) {
-      const cachedData = CacheManager.get<UserCollection>(key)
+      const cachedData = cacheManager.get<UserCollection>(key)
       if (cachedData) return cachedData
     }
 
@@ -34,7 +36,7 @@ export default class List extends Air {
       title === '游戏' ? (this.games as unknown as UserCollection) : this.computeCollection(title)
 
     // 快照仅在刷新期间写入, 内部是 toJS 深拷贝, 常规路径跳过以省掉整表克隆开销
-    if (isFetching) CacheManager.set(key, data)
+    if (isFetching) cacheManager.set(key, data)
 
     return data
   })

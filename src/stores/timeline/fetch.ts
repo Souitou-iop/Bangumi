@@ -2,9 +2,9 @@
  * @Author: czy0729
  * @Date: 2023-04-25 16:29:42
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-09 06:19:13
+ * @Last Modified time: 2026-09-22 06:41:59
  */
-import { getTimestamp, queue } from '@utils'
+import { getTimestamp, info, queue } from '@utils'
 import { fetchHTML } from '@utils/fetch'
 import { fetchUserActive } from '@utils/fetch.p1'
 import { fetchCollectionV0, fetchUsersV0 } from '@utils/fetch.v0'
@@ -17,6 +17,7 @@ import Computed from './computed'
 import { DEFAULT_SCOPE, DEFAULT_TYPE } from './init'
 
 import type { Id, SubjectId, TimeLineScope, TimeLineScopeCn, UserId } from '@types'
+import type { INIT_USER_INFO } from '../user/init'
 import type {
   CollectionTimelines,
   FetchTimelineArgs,
@@ -69,10 +70,10 @@ export default class Fetch extends Computed {
     args: FetchTimelineArgs = {},
     refresh?: boolean,
     prevTimeline?: Timeline,
-    userInfo?: any
+    userInfo?: typeof INIT_USER_INFO
   ): Promise<FetchTimelineHTMLReturn> => {
     const { scope, type, userId } = args || {}
-    const oldData = prevTimeline || LIST_EMPTY
+    const oldData = (prevTimeline || LIST_EMPTY) as Timeline
     const page = refresh ? 1 : oldData?.pagination.page + 1
     const scopeCn = MODEL_TIMELINE_SCOPE.getLabel<TimeLineScopeCn>(scope)
 
@@ -278,26 +279,48 @@ export default class Fetch extends Computed {
     const prevActive = this[STATE_KEY]
     const now = getTimestamp()
 
+    // 连续失败达到阈值视为网络不可用, 置标志让剩余排队任务直接跳过, 立即终止
+    const FAILED_LIMIT = 5
+    let consecutiveFailures = 0
+    let aborted = false
+
     try {
       const fetchs = userIds.map((userId, index) => async () => {
+        if (aborted) return
+
         const prev = prevActive[userId] || 0
         if (prev && now - prev <= H1) return
 
-        updates[userId] = await fetchUserActive(userId)
+        const createdAt = await fetchUserActive(userId)
+
+        // 请求失败: 累计连续失败数, 达到阈值抛错终止队列并提示 (并发下另一在飞任务同时失败时只提示一次)
+        if (createdAt === null) {
+          consecutiveFailures += 1
+          if (consecutiveFailures >= FAILED_LIMIT && !aborted) {
+            aborted = true
+            info('接口访问失败，请检查网络')
+            throw new Error('fetchUsersActiveQueue: consecutive failures')
+          }
+          return
+        }
+
+        consecutiveFailures = 0
+        updates[userId] = createdAt
 
         if (typeof onProgress === 'function') {
           onProgress(`${Math.floor(((index + 1) / (userIds.length || 1)) * 100)}%`, updates)
         }
       })
       await queue(fetchs, 2)
-
-      this.setState({
-        [STATE_KEY]: updates
-      })
-      this.save(STATE_KEY)
     } catch (error) {
       this.error('fetchUsersActiveQueue', error)
     }
+
+    // 正常结束或连续失败中止, 都保存已获取到的部分, 避免已完成的请求白费
+    this.setState({
+      [STATE_KEY]: updates
+    })
+    this.save(STATE_KEY)
 
     return updates
   }

@@ -18,11 +18,12 @@ import BottomTabLazy from './bottom-tab-lazy'
 import HomeRenderTabs from './home-render-tabs'
 import InitialPage from './initial-page'
 import NativeBottomTabs from './native-bottom-tabs'
+import KeepDistance from './keep-distance'
 import { COMPONENT, TEXTS } from './ds'
 
 import type { WithFilterProps } from '../../types'
 
-/** 底栏 */
+/** 页面导航 */
 function Route({ filter }: WithFilterProps) {
   r(COMPONENT)
 
@@ -35,16 +36,17 @@ function Route({ filter }: WithFilterProps) {
     <>
       <ItemSetting
         icon={<IconPanelBottom />}
-        hd='底栏'
+        hd='页面导航'
         arrow
         highlight
         filter={filter}
         onPress={setTrue}
       />
-      <ActionSheet show={state} title='底栏' height={560} onClose={setFalse}>
+      <ActionSheet show={state} title='页面导航' height={680} onClose={setFalse}>
         {shows.blocks && <HomeRenderTabs filter={filter} />}
         {shows.initialPage && <InitialPage filter={filter} />}
         {IOS_IPA && shows.nativeBottomTabs && <NativeBottomTabs filter={filter} />}
+        {shows.keepDistance && <KeepDistance filter={filter} />}
         {shows.bottomTabLazy && <BottomTabLazy filter={filter} />}
       </ActionSheet>
     </>

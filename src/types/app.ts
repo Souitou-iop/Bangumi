@@ -153,13 +153,16 @@ export type ListEmpty<T = unknown> = Expand<{
   }
   _list?: T[] | readonly T[]
   _loaded?: Loaded
-  _filter?: string
+
+  /** 被过滤条目说明 (x18 等过滤时为数量, 其余为文案) */
+  _filter?: string | number
 }>
 
-/** T: 传入 state 的所有 keys, 约束把所有 key 都可以通过 this[key] 访问 */
+/**
+ * T: 传入 state 的形态
+ * - 只约束 state 容器本身; 同名成员可为派生形态 (getter / computedFn), 与 state 键无类型对应关系
+ */
 export type StoreConstructor<T extends Record<string, unknown>> = {
-  [K in keyof T]: T[K]
-} & {
   state: T
 }
 

@@ -18,6 +18,13 @@ const COMMON = {
   tinygrail: '小圣杯'
 } as const
 
+/** 分页保活距离选项 */
+export const KEEP_DISTANCE = [
+  { label: '无限制', value: 0 },
+  { label: '1', value: 1 },
+  { label: '2', value: 2 }
+] as const
+
 export const TEXTS = {
   blocks: {
     setting: '功能块',
@@ -36,6 +43,12 @@ export const TEXTS = {
     hd: 'iOS 原生底栏',
     information:
       '使用系统原生底栏，在 iOS 26+ 显示 Liquid Glass 效果；切换后需要重新启动应用才能生效。'
+  },
+  keepDistance: {
+    hd: '标签页分页保活',
+    information:
+      '左右翻页时，除当前页外额外保留多少页不被销毁；保留越多来回切换越不容易白屏，同时占用内存越多',
+    search: KEEP_DISTANCE.map(item => item.label).join()
   }
 } as const
 

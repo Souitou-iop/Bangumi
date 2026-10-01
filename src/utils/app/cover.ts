@@ -2,11 +2,11 @@
  * @Author: czy0729
  * @Date: 2026-09-08
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-09-08
+ * @Last Modified time: 2026-09-21 06:08:05
  *
  * 封面与图片地址处理（CDN 匹配、质量切换、远程地址修复、本地头像, 拆分自 data-source.ts）
  */
-import { CDN_OSS_MAGMA_MONO, CDN_OSS_MAGMA_POSTER, CDN_OSS_SUBJECT } from '@utils/cdn'
+import { CDN_OSS_MAGMA_MONO, CDN_OSS_MAGMA_POSTER } from '@utils/cdn'
 import { IMG_DEFAULT } from '@constants/data'
 import { HOST_BGM_STATIC, HOST_IMAGE } from '@constants/host'
 import userData from '@assets/json/user.json'
@@ -38,9 +38,12 @@ export function matchCoverUrl<T>(
     return CDN_OSS_MAGMA_POSTER(getCoverMedium(_src), prefix) || fallback
   }
 
-  /** @deprecated 旧免费 CDN 源头, 国内已全部失效 */
+  /**
+   * @deprecated 旧免费 CDN 源头, 国内已全部失效, 现退回中质量图
+   *  - 该分支不做下方「大图不替换成低质量图」豁免, 开启 CDN 后 /l/ 也会被降到 /c/
+   */
   if (cdn) {
-    return CDN_OSS_SUBJECT(getCoverMedium(src), cdnOrigin as 'fastly' | 'OneDrive') || fallback
+    return getCoverMedium(src) || fallback
   }
 
   /** 大图不替换成低质量图 */
@@ -149,6 +152,10 @@ export function getMonoCoverSmall(url: string): string {
 export function fixedRemoteImageUrl<T>(url: T): T
 export function fixedRemoteImageUrl(url: unknown) {
   if (typeof url !== 'string' || !url) return url
+
+  // 非远程地址 (file:// data: blob: 相对路径) 原样返回, 避免被拼成 https:data:... 一类的坏地址
+  // 判定语义与 @utils/image 的 isRemoteImageUrl 一致, 内联正则是为避免 utils/app ←→ utils/image 的循环依赖
+  if (!/^(?:https?:)?\/\//i.test(url)) return url
 
   let value: string = url.replace(/http:\/\//g, 'https://')
 

@@ -2,15 +2,14 @@
  * @Author: czy0729
  * @Date: 2023-02-12 05:42:52
  * @Last Modified by: czy0729
- * @Last Modified time: 2026-07-16 22:19:51
+ * @Last Modified time: 2026-09-29 02:49:14
  */
-import React from 'react'
 import { View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { observer } from 'mobx-react'
 import { systemStore, useStore } from '@stores'
 import { stl } from '@utils'
-import { useAppState, useIsFocused } from '@utils/hooks'
+import { useActive } from '@utils/hooks'
 import { TEXT_ONLY, WEB } from '@constants'
 import { getHtml } from './utils'
 import { COMPONENT, STAGE_HEIGHT, STAGE_WIDTH } from './ds'
@@ -22,11 +21,10 @@ import type { Props } from './types'
 function Mesume({ forwardRef, loaded, onMessage }: Props) {
   const { $ } = useStore<Ctx>(COMPONENT)
 
-  const show = useIsFocused()
-  const appState = useAppState()
+  const active = useActive()
 
   const { live2DV2, live2DModel, live2dScale } = systemStore.setting
-  if (TEXT_ONLY || WEB || !live2DV2 || $.state.dragging || !show || !appState) return null
+  if (TEXT_ONLY || WEB || !live2DV2 || $.state.dragging || !active) return null
 
   const scale = live2dScale === '大' ? 1 : live2dScale === '中' ? 0.76 : 0.5
   const width = Math.floor(STAGE_WIDTH * scale)
